@@ -1,0 +1,163 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <malloc.h>
+#include <string.h>
+
+#define nl printf("\n")
+
+typedef struct {
+	unsigned int code[30];
+	char ** word;
+} Codes;
+
+int readln(char ** str, FILE * f);
+int mystrcmp(const char * str1, const char * str2);
+unsigned int check(char * word);
+unsigned int check(char * word);
+unsigned long strip(char * str);
+
+int mystrcmp(const char * str1, const char * str2)
+{
+	unsigned int i;
+	for(i = 0; i < strlen(str2); i++){
+		if(str1[i] != str2[i])
+		{
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int readln(char ** str, FILE * f)
+{
+	if(*str != NULL){
+		free(*str);
+	}
+	*str = NULL;
+	unsigned int i = 1;
+	char c = 0;
+	int pos = ftell(f);
+	while(c != '\n' && c != EOF){
+		c = fgetc(f);
+		i++;
+	}
+	fseek(f, pos, SEEK_SET);
+	*str = (char*)calloc(i, sizeof(char));
+	fgets(*str, i, f);
+	return i;
+}
+
+unsigned long strip(char * str)
+{
+	char * curtok = strtok(str, " ");
+	unsigned long i = 0;
+	while(curtok != NULL)
+	{
+		check(curtok);
+		curtok = strtok(NULL, " ");
+		i++;
+	} 
+	return i;
+}
+
+unsigned int check(char * word)
+{
+	unsigned int code;
+	unsigned int i;
+	for(i = 0; i < strlen(word); i++)
+	{
+		if(word[i] >= 'A' && word[i] <= 'z')
+		{
+			if(code == 2){
+				code = 20;
+				break;
+			}
+			code = 1;
+		}
+		else if(word[i] >= '0' && word[i] <= '9')
+		{
+			if(code == 1){
+				code = 20;
+				break;
+			}
+			code = 2;
+		}
+		else {
+			if(code == 1 || code == 2){
+				if(word[i] == '\n'){
+					continue;
+				}
+				printf("%d", code);nl;
+			}
+			switch (word[i])
+			{
+				case ';':
+					code = 10;
+				break;
+				case ',':
+					code = 11;
+				break;
+				case '=':
+					code = 30;
+				break;
+				case '+':
+					code = 31;
+				break;
+				case '-':
+					code = 32;
+				break;
+				case '*':
+					code = 33;
+				break;
+				case '/':
+					code = 34;
+				break;
+				case '(':
+					code = 35;
+				break;
+				case ')':
+					code = 36;
+				break;
+			}
+		}
+		if(code >= 30 && code < 40)
+		{
+			printf("%d", code);nl;
+		}
+	}
+	if(mystrcmp(word, "Var")){
+		code = 3;
+	}
+	if(mystrcmp(word, "Begin")){
+		code = 4;
+	}
+	if(mystrcmp(word, "End")){
+		code = 5;
+	}
+
+	if(!(code >= 30 && code < 40))
+	{
+		printf("%d", code);nl;
+	}
+	return code;
+}
+
+int main(int argc, char ** argv)
+{
+	if(argc < 2)
+		goto END;
+	FILE *fp = fopen(argv[1], "r");
+	char * str = NULL;
+
+	do
+	{
+		nl;
+		readln(&str, fp);
+		strip(str);
+	} while (strlen(str) != 0);
+
+	fclose(fp);
+END:
+	return 0;
+}
+
