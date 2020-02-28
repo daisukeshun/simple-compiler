@@ -62,10 +62,14 @@ unsigned long strip(char * str)
 
 unsigned int check(char * word)
 {
+	FILE * output = fopen("output.out", "a");
+
 	unsigned int code;
 	unsigned int i;
+	char f = 0;
 	for(i = 0; i < strlen(word); i++)
 	{
+		f = 0;
 		if(word[i] >= 'A' && word[i] <= 'z')
 		{
 			if(code == 2){
@@ -73,6 +77,8 @@ unsigned int check(char * word)
 				break;
 			}
 			code = 1;
+			fprintf(output, "%c", word[i]);
+			printf("%c", word[i]);
 		}
 		else if(word[i] >= '0' && word[i] <= '9')
 		{
@@ -81,13 +87,17 @@ unsigned int check(char * word)
 				break;
 			}
 			code = 2;
+			fprintf(output, "%c", word[i]);
+			printf("%c", word[i]);
 		}
 		else {
 			if(code == 1 || code == 2){
 				if(word[i] == '\n'){
 					continue;
 				}
-				printf("%d", code);nl;
+				fprintf(stdout, "\t\t%d\n", code);
+				fprintf(output, "\t\t%d\n", code);
+				f = 1;
 			}
 			switch (word[i])
 			{
@@ -119,10 +129,14 @@ unsigned int check(char * word)
 					code = 36;
 				break;
 			}
+			if(word[i] != '\n')
+				fprintf(output, "%c", word[i]);
+				printf("%c", word[i]);
 		}
 		if(code >= 30 && code < 40)
 		{
-			printf("%d", code);nl;
+			fprintf(stdout, "\t\t%d\n", code);
+			fprintf(output, "\t\t%d\n", code);
 		}
 	}
 	if(mystrcmp(word, "Var")){
@@ -137,8 +151,11 @@ unsigned int check(char * word)
 
 	if(!(code >= 30 && code < 40))
 	{
-		printf("%d", code);nl;
+		fprintf(stdout, "\t\t%d\n", code);
+		fprintf(output, "\t\t%d\n", code);
 	}
+
+	fclose(output);
 	return code;
 }
 
@@ -148,10 +165,14 @@ int main(int argc, char ** argv)
 		goto END;
 	FILE *fp = fopen(argv[1], "r");
 	char * str = NULL;
+	unsigned long line = 0;
 
+	FILE * output = fopen("output.out", "w");
+	fclose(output);
 	do
 	{
 		nl;
+		line++;
 		readln(&str, fp);
 		strip(str);
 	} while (strlen(str) != 0);
