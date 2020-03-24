@@ -1,7 +1,6 @@
 #include "small_lib.h"
 
 unsigned int check(char * word);
-unsigned int check(char * word);
 unsigned long strip(char * str);
 
 unsigned long strip(char * str)
@@ -104,7 +103,6 @@ unsigned int check(char * word)
 	{
 		fprintf(output, "\t\t%d\n", code);
 	}
-
 	fclose(output);
 	return code;
 }

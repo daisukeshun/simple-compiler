@@ -44,4 +44,19 @@ int readln(char ** str, FILE * f)
 	}
 	return i;
 }
+
+int len(int * line)
+{
+	return *line;
+}
+
+void pLine(int * list)
+{
+	int i;
+	for(i = 0; i < list[0]; i++)
+	{
+		printf("%d ", list[i+1]);
+	}
+	nl;
+}
 #endif
