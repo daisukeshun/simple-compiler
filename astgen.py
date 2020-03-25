@@ -1,91 +1,131 @@
 
-#TODO:: Запилить чтение из того, что нам выплюнул сишный лексер (output.out)
-#       Считать переменные и числа в класс идентификаторов
-#       Считать арифметические операторы в классы операторов
-#       Можно сразу сделать заполнение data_segment'a в классе Program (просто напихать туда все переменные после Var и до Begin
+class Line:
+    def __init__(self, num, arr):
+        self.num = num
+        self.element = arr
 
-def mincro_fabric(value, code):
-    if 1 <= code <= 2:
-        return Identifier(value, code)
-    elif 30 <= code <= 34:
-        return Operator(value, code)
-    elif 10 <= code <= 11:
-        return Sign(value, code)
+def read_lexers_file(filename):
+    f = open(filename, "r")
+    tokens = []
+    for line in f:
+        if len(line.split()) >= 1:
+            tokens.append(line.split())
+    f.close()
+    line = []
+    begin_flag = 0
+    for i in tokens:
+        if len(i) != 1:
+            if int(i[1]) == 4:
+                begin_flag = 1
+            if begin_flag:
+                line.append(i)
+    line.pop(0);
+    line.pop();
+    return line
 
 
-class Sign:
-    def __init__(self, value, code):
-        self.code = code
-        self.type = "sign"
-        self.value = value
-        if code == 10:
-            self.type = "semicolon"
-        elif code == 11:
-            self.type = "comma"
 
-    def __str__(self):
-        return self.__repr__()
+
+class Expression:
+    def __init__(self, left, right, middle):
+        self.left = left
+        self.right = right
+        self.middle = middle
+
+        self.type = "EXP"
 
     def __repr__(self):
-        return "Sigh\n code: %s\n type: %s\n value: %s\n" % (self.code, self.type, self.value)
+        return "Exp\n middle: %s\n left: %s\n right: %s\n" % (self.middle, self.left, self.right)
+    def __str__(self):
+        return self.__repr__()
 
 class Operator:
-    def __init__(self, value, code):
-        self.code = code
+    def __init__(self, code, value):
         self.value = value
-        self.type = "operator"
-
+        self.code = code
+        if code > 11:
+            self.type = "OPR"
+        else:
+            self.type = "SGN"
+        if code == 30:
+            self.order = 5
+        elif 31<= code <= 32:
+            self.order = 4
+        elif 33 <= code <= 34:
+            self.order = 3
+        else:
+            self.order = 2
+    def __repr__(self):
+        return "Op\n value: %s\n code: %s\n type: %s\n order: %s\n" % (self.value, self.code, self.type, self.order)
     def __str__(self):
         return self.__repr__()
-
-    def __repr__(self):
-        return "Operator\n code: %s\n type: %s\n value: %s\n" % (self.code, self.type, self.value)
 
 class Identifier:
-    def __init__(self, value, code):
-        self.code = code
+    def __init__(self, code, value):
         self.value = value
+        self.code = code
         if code == 1:
-            self.type = "variable"
-        elif code == 2:
-            self.type = "number"
-
+            self.type = "VAR"
+        elif code <= 2:
+            self.type = "NUM"
+    def __repr__(self):
+        return "Id\n value: %s\n code: %s\n type: %s\n" % (self.value, self.code, self.type)
     def __str__(self):
         return self.__repr__()
 
-    def __repr__(self):
-        return "Identifier\n code: %s\n type: %s\n value: %s\n" % (self.code, self.type, self.value)
 
-class Program:
-    def __init__(self):
-        self.data_section = []
-        self.code_section = []
+def to_class(arr):
+    if int(arr[1]) < 3:
+        return Identifier(int(arr[1]), arr[0])
+    elif 30 <= int(arr[1]) <= 36:
+        return Operator(int(arr[1]), arr[0])
+    elif 10 <= int(arr[1]) <= 11:
+        return Operator(int(arr[1]), arr[0])
+
 
 def main():
-    token = "ab = 11 + 2 + 3 - 10 * 20 - a;"
+    raw_code_section = read_lexers_file("output.out")
 
-    line = []
-    line.append(mincro_fabric("ab", 1))
-    line.append(mincro_fabric("=", 30))
-    line.append(mincro_fabric("20", 2))
-    line.append(mincro_fabric(";", 10))
-    print(line)
-    exp = [];
+    buf = []
+    for i in raw_code_section:
+        buf.append(to_class(i))
 
-    i = 0
-    while not exp.count(line[-1]):
-        if len(line) == i:
-            break
+    exp = []
+    for i in buf:
+        if i.type == "OPR":
+            l = buf[buf.index(i) - 1]
+            r = buf[buf.index(i) + 1]
+            m = i
+            exp.append(Expression(l, r, m))
 
-        exp.append(line[i].value)
-        i+=1
-        if(len(exp) == 3):
-            print(exp)
-            exp.pop()
-            exp.pop()
+    convert(exp)
+    return 0
+
+def printer(e, var):
+    if e.middle.code == 31:
+        print("add %s rax" % (var.value))
+        print("mov rax %s" % (e.right.value))
+    elif e.middle.code == 32:
+        print("add %s rax" % (var.value))
+        print("mov rax %s" % (e.right.value))
+    elif e.middle.code == 33:
+        print("mul rax %s" % (e.right.value))
+    elif e.middle.code == 34:
+        print("div rax %s" % (e.right.value))
+        
+def convert(exp):
+    var = exp[0].left
+    for e in exp:
+        if e.middle.code == 30:
+            print("mov %s %s" %(e.left.value, e.right.value))
+        elif 31 <= e.middle.code <= 34:
+            printer(e, var)
+            if exp.index(e) == len(exp) - 1:
+                break
+    print("add %s rax" % (var.value))
 
 
-
+            
 
 
 if __name__ == "__main__":
