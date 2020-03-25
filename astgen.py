@@ -106,7 +106,7 @@ def printer(e, var):
         print("add %s rax" % (var.value))
         print("mov rax %s" % (e.right.value))
     elif e.middle.code == 32:
-        print("add %s rax" % (var.value))
+        print("sub %s rax" % (var.value))
         print("mov rax %s" % (e.right.value))
     elif e.middle.code == 33:
         print("mul rax %s" % (e.right.value))
