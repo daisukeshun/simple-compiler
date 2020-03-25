@@ -90,15 +90,21 @@ def main():
     for i in raw_code_section:
         buf.append(to_class(i))
 
-    exp = []
+    exp = [[]]
+    j = 0
     for i in buf:
         if i.type == "OPR":
             l = buf[buf.index(i) - 1]
             r = buf[buf.index(i) + 1]
             m = i
-            exp.append(Expression(l, r, m))
+            exp[j].append(Expression(l, r, m))
+        if i.type == "SGN":
+            exp.append([])
+            j+=1
 
-    convert(exp)
+    for i in exp:
+        if len(i):
+            convert(i)
     return 0
 
 def printer(e, var):
@@ -106,8 +112,8 @@ def printer(e, var):
         print("add %s rax" % (var.value))
         print("mov rax %s" % (e.right.value))
     elif e.middle.code == 32:
-        print("sub %s rax" % (var.value))
         print("mov rax %s" % (e.right.value))
+        print("sub %s rax" % (var.value))
     elif e.middle.code == 33:
         print("mul rax %s" % (e.right.value))
     elif e.middle.code == 34:
@@ -117,6 +123,7 @@ def convert(exp):
     var = exp[0].left
     for e in exp:
         if e.middle.code == 30:
+            var = e.left
             print("mov %s %s" %(e.left.value, e.right.value))
         elif 31 <= e.middle.code <= 34:
             printer(e, var)
