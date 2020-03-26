@@ -63,10 +63,17 @@ def is_operator(token):
         return False
 
 def find_operator(text):
+    prefer = None
     for i in text:
         if is_operator(i):
-            return text.index(i)
-    return 0
+            if prefer == None:
+                prefer = i
+            elif prefer.code > i.code:
+                prefer = i
+    if prefer:
+        return text.index(prefer)
+    else:
+        return 0
 
 def calc(stack, text):
     i = find_operator(text)
@@ -91,13 +98,8 @@ def main():
 
     stack = []
 
-    calc(stack, text)
-    calc(stack, text)
-    calc(stack, text)
-    calc(stack, text)
-    calc(stack, text)
-    calc(stack, text)
-    calc(stack, text)
+    while len(text) != 1:
+        calc(stack, text)
 
     print(stack)
     print(text)
