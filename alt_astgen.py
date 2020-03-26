@@ -66,6 +66,7 @@ def find_operator(text):
     for i in text:
         if is_operator(i):
             return text.index(i)
+    return 0
 
 def calc(stack, text):
     i = find_operator(text)
@@ -90,6 +91,9 @@ def main():
 
     stack = []
 
+    calc(stack, text)
+    calc(stack, text)
+    calc(stack, text)
     calc(stack, text)
     calc(stack, text)
     calc(stack, text)
