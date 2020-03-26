@@ -3,5 +3,5 @@ clear
 cc -o lexer lexer.c
 ./lexer p.lang
 
-python3 astgen.py
+python3 alt_astgen.py
 

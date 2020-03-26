@@ -1,4 +1,3 @@
-
 class Line:
     def __init__(self, num, arr):
         self.num = num
@@ -22,8 +21,6 @@ def read_lexers_file(filename):
     line.pop(0);
     line.pop();
     return line
-
-
 
 
 class Expression:
@@ -109,27 +106,27 @@ def main():
 
 def printer(e, var):
     if e.middle.code == 31:
-        print("add %s rax" % (var.value))
-        print("mov rax %s" % (e.right.value))
+        print("add %s, rax" % (var.value))
+        print("mov rax, %s" % (e.right.value))
     elif e.middle.code == 32:
-        print("mov rax %s" % (e.right.value))
-        print("sub %s rax" % (var.value))
+        print("mov rax, %s" % (e.right.value))
+        print("sub %s, rax" % (var.value))
     elif e.middle.code == 33:
-        print("mul rax %s" % (e.right.value))
+        print("mul rax, %s" % (e.right.value))
     elif e.middle.code == 34:
-        print("div rax %s" % (e.right.value))
+        print("div rax, %s" % (e.right.value))
         
 def convert(exp):
     var = exp[0].left
     for e in exp:
         if e.middle.code == 30:
             var = e.left
-            print("mov %s %s" %(e.left.value, e.right.value))
+            print("mov %s, %s" %(e.left.value, e.right.value))
         elif 31 <= e.middle.code <= 34:
             printer(e, var)
             if exp.index(e) == len(exp) - 1:
                 break
-    print("add %s rax" % (var.value))
+    print("add %s, rax" % (var.value))
 
 
             
