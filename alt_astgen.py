@@ -88,7 +88,37 @@ def collect_brackets(text):
     return arr
 
 
-def ordering(text):
+
+def find_last(arr):
+    example = arr[0]
+    ret = []
+    for i in arr:
+        if example[0] == i[0]:
+            ret.append(i)
+    for i in ret:
+        arr.remove(i)
+    return ret
+
+def close_bracket_fix(arr1, arr2):
+    current = []
+    for i in range(1, len(arr1)):
+        if arr1.count(arr1[i - 1]) == 1:
+            current.append(arr1[i - 1])
+    if not current:
+        return False
+    now = []
+    for i in range(1, len(arr1)):
+        if arr1[i - 1] == arr1[i]:
+            if arr2[i - 1] > arr2[i]:
+                now.append([arr1[i], i])
+    now.reverse()
+    last = find_last(now)
+    b = current.pop()
+    for i in last:
+        arr1[i[1]] = b
+    return True
+
+def brackets_ordering(text):
     brackets = collect_brackets(text)
 
     counter = 0
@@ -107,21 +137,62 @@ def ordering(text):
             depth-=1
         b[0].bracket = counter
 
-    before = 0
-    current = []
-    for i in range(1, len(arr1)):
-        if not current.count(arr1[i - 1]):
-            current.append(arr1[i - 1])
-        else:
-            current.remove(arr1[i - 1])
-        if arr1[i - 1] == arr1[i]:
-            if arr2[i - 1] > arr2[i]:
-                arr1[i] = current.pop()
+    checker = True
+    while checker:
+        checker = close_bracket_fix(arr1, arr2)
 
     for i in range(len(arr1)):
         brackets[i][0].bracket = arr1[i]
-
     return brackets
+
+def brackets_sort(ordered_brackets):
+    ret = []
+    for i in ordered_brackets:
+        if i[0].code == 35:
+            ret.append([])
+        ret[i[0].bracket - 1].append(i)
+    return ret
+
+
+def find_min_tokens(text):
+    min_bracket = text[0].bracket
+    for i in text:
+        if i.bracket < min_bracket:
+            min_bracket = i.bracket
+
+    ret = []
+    for i in text:
+        if i.bracket == min_bracket:
+            ret.append(i)
+    return ret
+
+
+def find_operator(chosen_tokens):
+    prefer = None
+    for i in chosen_tokens:
+        if is_operator(i) and not prefer:
+            prefer = i
+        elif is_operator(i) and prefer:
+            if i.code >= prefer.code:
+                prefer = i
+    if prefer:
+        return chosen_tokens.index(prefer)
+    else:
+        return 0
+
+def calculate(stack, chosen_tokens):
+    for i in chosen_tokens:
+        if not stack:
+            if is_operator(i):
+                stack.append(chosen_tokens.pop(chosen_tokens.index(i)))
+        else:
+            if stack[-1].code == 30:
+                stack.append(chosen_tokens.pop(0))
+            else:
+                prefer = find_operator(chosen_tokens)
+                stack.append(chosen_tokens.pop(prefer))
+
+
 
 
 
@@ -133,12 +204,16 @@ def main():
     program_translator = Translator()
     program_translator.data(data)
 
+    ordered_brackets = brackets_ordering(text)
+    sorted_ordered_brackets = brackets_sort(ordered_brackets)
 
-    stack = []
+    buf = [0 for i in range(len(text))]
+    for arr in sorted_ordered_brackets:
+        for i in range(arr[0][1], arr[1][1]):
+            buf[i] = arr[0][0].bracket
 
-
-    ordered_brackets = ordering(text)
-
+    for i in range(len(text)):
+        text[i].bracket = buf[i]
 
     while 1:
         i = find_bracket(text)
@@ -147,6 +222,16 @@ def main():
         else:
             break
     text.pop(-1)
+
+    stack = []
+
+    while text:
+        chosen_tokens = find_min_tokens(text)
+        for i in chosen_tokens:
+            text.remove(i)
+        while chosen_tokens:
+            calculate(stack, chosen_tokens)
+    print(stack)
 
     return 0
 
