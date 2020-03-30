@@ -23,7 +23,6 @@ class Reader:
     def text_segment(self, filename):
         return self.flag_reading(filename, 4, 5)
 
-
 class Translator:
     def data(self, data):
         print("global _start")
@@ -32,12 +31,13 @@ class Translator:
             if int(i[1]) == 1:
                 print("%s\t dd 0x00" % i[0])
 
-    def text(self, text):
+    def text(self, stakenize_text):
         print("section .text")
         print("_start:")
-        for i in text:
-            if int(i[1]) == 1:
-                print("%s\t dd 0x00" % i[0])
+
+        for token in stakenize_text:
+            print(token.value, token.code)
+
 
 class Token:
     def __init__(self, el):
@@ -47,7 +47,7 @@ class Token:
         self.bracket = 0
 
     def __repr__(self):
-        return "(value: '%s' bracket: %s)" % (self.value, self.bracket)
+        return "(value: '%s' code: %s)" % (self.value, self.code)
     def __str__(self):
         return self.value
 
@@ -86,8 +86,6 @@ def collect_brackets(text):
         if 35 <= item.code <= 36:
             arr.append([item, text.index(item)])
     return arr
-
-
 
 def find_last(arr):
     example = arr[0]
@@ -173,7 +171,7 @@ def find_operator(chosen_tokens):
         if is_operator(i) and not prefer:
             prefer = i
         elif is_operator(i) and prefer:
-            if i.code >= prefer.code:
+            if i.code <= prefer.code:
                 prefer = i
     if prefer:
         return chosen_tokens.index(prefer)
@@ -193,28 +191,15 @@ def calculate(stack, chosen_tokens):
                 stack.append(chosen_tokens.pop(prefer))
 
 
+def unary_minus_detection(text):
+    for i in range(1, len(text)):
+        if text[i].code == 32:
+            if (30 <= text[i - 1].code <= 34 or
+                text[i + 1].code == 35 or
+                text[i - 1].code == 35):
+                text[i].code = 37
 
-
-
-def main():
-    program_reader = Reader()
-    data = program_reader.data_segment("output.out")
-    text = tokenize(program_reader.text_segment("output.out"))
-
-    program_translator = Translator()
-    program_translator.data(data)
-
-    ordered_brackets = brackets_ordering(text)
-    sorted_ordered_brackets = brackets_sort(ordered_brackets)
-
-    buf = [0 for i in range(len(text))]
-    for arr in sorted_ordered_brackets:
-        for i in range(arr[0][1], arr[1][1]):
-            buf[i] = arr[0][0].bracket
-
-    for i in range(len(text)):
-        text[i].bracket = buf[i]
-
+def remove_brackets(text):
     while 1:
         i = find_bracket(text)
         if i:
@@ -222,6 +207,29 @@ def main():
         else:
             break
     text.pop(-1)
+
+def prepare_token_brackets(text):
+    ordered_brackets = brackets_ordering(text)
+    sorted_ordered_brackets = brackets_sort(ordered_brackets)
+    buf = [0 for i in range(len(text))]
+    for arr in sorted_ordered_brackets:
+        for i in range(arr[0][1], arr[1][1]):
+            buf[i] = arr[0][0].bracket
+    for i in range(len(text)):
+        text[i].bracket = buf[i]
+
+def final_minus_sort(stack):
+    for i in range(1, len(stack)):
+        if stack[i].code == 37 and stack[i - 1].code == 37:
+            buf = stack[i]
+            stack[i] = stack[i + 1]
+            stack[i + 1] = buf
+
+def stackenize_tokens(text):
+
+    prepare_token_brackets(text)
+    remove_brackets(text)
+    unary_minus_detection(text)
 
     stack = []
 
@@ -231,7 +239,34 @@ def main():
             text.remove(i)
         while chosen_tokens:
             calculate(stack, chosen_tokens)
-    print(stack)
+
+    return stack
+
+def main():
+    program_reader = Reader()
+    data = program_reader.data_segment("output.out")
+    program_translator = Translator()
+    program_translator.data(data)
+
+    buf = program_reader.text_segment("output.out")
+    text = [[]]
+
+    i = 0
+    for arr in buf:
+        text[i].append(arr)
+        if int(arr[1]) == 10:
+            text.append([])
+            i+=1
+    text.remove([])
+    
+
+    stakenized_lines = []
+    for line in text:
+        tokenized_line = tokenize(line)
+        stack = stackenize_tokens(tokenized_line)
+        final_minus_sort(stack)
+        stakenized_lines.append(stack)
+    print(stakenized_lines[0])
 
     return 0
 
