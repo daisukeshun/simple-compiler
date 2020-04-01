@@ -13,6 +13,17 @@ int mystrcmp(const char * str1, const char * str2);
 int mystrcmp(const char * str1, const char * str2)
 {
 	unsigned int i;
+
+	if(strlen(str1) != strlen(str2))
+	{
+		if (str1[strlen(str1) - 1] == '\n')
+		{
+			if(strlen(str1) - 1 != strlen(str2))
+			{
+				return 0;
+			}
+		}
+	}
 	for(i = 0; i < strlen(str2); i++){
 		if(str1[i] != str2[i])
 		{
@@ -36,7 +47,7 @@ int readln(char ** str, FILE * f)
 		i++;
 	}
 	fseek(f, pos, SEEK_SET);
-	*str = (char*)calloc(i, sizeof(char));
+	*str = (char*)calloc(i, sizeof(char) + 1);
 	fgets(*str, i, f);
 	if(*str == 0)
 	{

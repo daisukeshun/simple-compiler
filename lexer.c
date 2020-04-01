@@ -6,6 +6,7 @@ unsigned long strip(char * str);
 unsigned long strip(char * str)
 {
 	unsigned long i = 0;
+
 	char * curtok = strtok(str, " ");
 	while(curtok != NULL)
 	{
@@ -47,6 +48,15 @@ unsigned int check(char * word)
 			if(code == 1 || code == 2){
 				if(word[i] == '\n'){
 					continue;
+				}
+				if(mystrcmp(word, "Var")){
+					code = 3;
+				}
+				if(mystrcmp(word, "Begin")){
+					code = 4;
+				}
+				if(mystrcmp(word, "End")){
+					code = 5;
 				}
 				fprintf(output, "\t\t%d\n", code);
 			}

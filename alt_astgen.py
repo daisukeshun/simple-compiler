@@ -7,7 +7,10 @@ class Reader:
 
         for line in f.readlines():
             if len(line.split()) and line.split()[0][0] != ':':
-                code = int(line.split()[1])
+                if len(line.split()) > 1:
+                    code = int(line.split()[1])
+                else:
+                    continue
                 if code == before:
                     flag = True
                 elif code == after:
@@ -189,15 +192,20 @@ def calculate(stack, chosen_tokens):
             else:
                 prefer = find_operator(chosen_tokens)
                 stack.append(chosen_tokens.pop(prefer))
+    if not stack:
+        stack.append(chosen_tokens.pop())
+
 
 
 def unary_minus_detection(text):
     for i in range(1, len(text)):
         if text[i].code == 32:
-            if (30 <= text[i - 1].code <= 34 or
+            if (text[i + 1].code == 1 or
+                text[i + 1].code == 2 or
                 text[i + 1].code == 35 or
                 text[i - 1].code == 35):
                 text[i].code = 37
+            
 
 def remove_brackets(text):
     while 1:
@@ -242,15 +250,168 @@ def stackenize_tokens(text):
 
     return stack
 
+class Line:
+    def __init__(self, number, line):
+        self.number = number
+        self.line = line
+    def __repr__(self):
+        return "num: %s, line: %s" % (self.number, self.line)
+    def __str__(self):
+        self.string = str(self.number) + ": "
+        for token in self.line:
+            self.string+=token[0].value
+        return self.string
+
+class Checker:
+    def __init__(self, filename):
+        self.filename = filename
+        self.lines = []
+        self.tokens = []
+
+        f = open(self.filename, "r")
+        line_counter = 1
+        token_counter = 0
+        for line in f.readlines():
+            if len(line.split()):
+                if line[0] == ':' and len(line.split()) == 1:
+                    self.lines.append(Line(line_counter, []))
+                    line_counter+=1
+                else:
+                    if len(line.split()) > 1:
+                        self.tokens.append(Token(line.split()))
+                        self.lines[-1].line.append([Token(line.split()),token_counter])
+                        token_counter+=1
+                    else:
+                        continue
+        f.close()
+
+    def var_begin_end(self):
+        flag = {
+        "var": 0,
+        "begin": 0,
+        "end": 0
+        }
+        for i in range(len(self.tokens)):
+            if self.tokens[i].code == 3:
+                flag["var"] = 1
+                if self.tokens[i + 1].code != 1:
+                    print("Error: expect identifier after Var")
+                    print(self.get_line_by_token_id(i + 1))
+            elif self.tokens[i].code == 4:
+                flag["begin"] = 1
+                if self.tokens[i + 1].code != 1:
+                    print("Error: expect identifier after Begin")
+                    print(self.get_line_by_token_id(i + 1))
+            elif self.tokens[i].code == 5:
+                flag["end"] = 1
+                if self.tokens[i - 1].code != 10:
+                    print("Error: expect semicolon before End")
+                    print(self.get_line_by_token_id(i - 1))
+
+        if not flag["var"]:
+            print("Var is not found")
+        elif not flag["begin"]:
+            print("Begin is not found")
+        elif not flag["end"]:
+            print("End not found")
+        else:
+            return 1
+        return 0
+
+    def invalid(self):
+        for n_line in self.lines:
+            for token in n_line.line:
+                if token[0].code == 20:
+                    token[0].value = "{}"
+                    print("Error: invalid identifier\n%s" % (n_line))
+                    break
+                if token[0].code == 0:
+                    token[0].value = "{}"
+                    print("Error: invalid operator\n%s" % (n_line))
+                    break
+
+    def get_line_by_token_id(self, token_id):
+        for n_line in self.lines:
+            for token_n in n_line.line:
+                if token_n[1] == token_id:
+                    token_n[0].value = "{}"
+                    return n_line
+
+    def operators(self):
+        unary_minus_detection(self.tokens)
+        for i in range(len(self.tokens)):
+            if is_operator(self.tokens[i]):
+               if (is_operator(self.tokens[i - 1]) or
+                   is_operator(self.tokens[i + 1])):
+                   print("Error: operators chain\n%s" % (self.get_line_by_token_id(i)))
+                   break
+            elif self.tokens[i].code == 37:
+               if (self.tokens[i - 1].code == 37 or
+                   self.tokens[i + 1].code == 37):
+                   print("Error: operators chain\n%s" % (self.get_line_by_token_id(i)))
+                   break
+
+    def brackets(self):
+        checker = 0
+        last_bracket = 0
+        for i in range(len(self.tokens)):
+            if self.tokens[i].code == 35:
+                if is_operator(self.tokens[i + 1]):
+                    print("Error: operator not expected\n%s" % (self.get_line_by_token_id(i + 1)))
+                elif not is_operator(self.tokens[i - 1]) and self.tokens[i - 1].code != 37:
+                    print("Error: literal not expected\n%s" % (self.get_line_by_token_id(i - 1)))
+                checker+=1
+                last_bracket = i
+            elif self.tokens[i].code == 36:
+                if is_operator(self.tokens[i - 1]):
+                    print("Error: operator not expected\n%s" % (self.get_line_by_token_id(i - 1)))
+                elif not is_operator(self.tokens[i + 1]) and self.tokens[i + 1].code != 10:
+                    print("Error: literal not expected\n%s" % (self.get_line_by_token_id(i + 1)))
+                checker-=1
+                last_bracket = i
+        if checker:
+            if checker > 0:
+                print("Error: open bracket not found\n%s" % (self.get_line_by_token_id(last_bracket)))
+            else:
+                print("Error: close bracket not found\n%s" % (self.get_line_by_token_id(last_bracket)))
+
+    def equals(self):
+        checker = 0
+        last_equal = 0
+        in_exp = 0
+        for i in range(len(self.tokens)):
+            if self.tokens[i].code == 30:
+                in_exp = 1
+                checker+=1
+                last_equal = i
+            elif self.tokens[i].code == 10 and in_exp:
+                in_exp = 0
+                checker-=1
+
+        if checker > 0:
+            print("Error: equal is not expected")
+            print(self.get_line_by_token_id(last_equal))
+
+
+
+    
 def main():
+    program_checker = Checker("output.out")
+    program_checker.var_begin_end()
+    program_checker.invalid()
+    program_checker.operators()
+    program_checker.brackets()
+    program_checker.equals()
+
+    '''
     program_reader = Reader()
     data = program_reader.data_segment("output.out")
     program_translator = Translator()
+
     program_translator.data(data)
-
     buf = program_reader.text_segment("output.out")
-    text = [[]]
 
+    text = [[]]
     i = 0
     for arr in buf:
         text[i].append(arr)
@@ -259,15 +420,14 @@ def main():
             i+=1
     text.remove([])
     
-
     stakenized_lines = []
     for line in text:
         tokenized_line = tokenize(line)
         stack = stackenize_tokens(tokenized_line)
         final_minus_sort(stack)
         stakenized_lines.append(stack)
-    print(stakenized_lines[0])
-
+    print(stakenized_lines)
+    '''
     return 0
 
 if __name__ == "__main__":
