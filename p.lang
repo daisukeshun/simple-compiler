@@ -1,8 +1,5 @@
-Var
-a,
-ab,
-c, d;
+Var a, b;
 Begin
-a = -A - -(B + C);
-b = 10;
+a = -1 - -(2 + 3) - 10;
+b = 200;
 End

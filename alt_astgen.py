@@ -1,3 +1,4 @@
+'''
 class Reader:
     def flag_reading(self, filename, before, after):
         f = open(filename, "r")
@@ -41,6 +42,7 @@ class Translator:
         for token in stakenize_text:
             print(token.value, token.code)
 
+'''
 
 class Token:
     def __init__(self, el):
@@ -66,6 +68,7 @@ def is_operator(token):
     else:
         return False
 
+'''
 def find_min_order(text):
     mi = text[0].order
     arr = []
@@ -195,18 +198,6 @@ def calculate(stack, chosen_tokens):
     if not stack:
         stack.append(chosen_tokens.pop())
 
-
-
-def unary_minus_detection(text):
-    for i in range(1, len(text)):
-        if text[i].code == 32:
-            if (text[i + 1].code == 1 or
-                text[i + 1].code == 2 or
-                text[i + 1].code == 35 or
-                text[i - 1].code == 35):
-                text[i].code = 37
-            
-
 def remove_brackets(text):
     while 1:
         i = find_bracket(text)
@@ -249,9 +240,21 @@ def stackenize_tokens(text):
             calculate(stack, chosen_tokens)
 
     return stack
+'''
 
-class Line:
-    def __init__(self, number, line):
+
+def unary_minus_detection(text):
+    for i in range(1, len(text)):               #унарный минус может стоять только перед открывающей скобкой, 
+        if text[i].code == 32:                  #числом и переменной, при этом перед минусом должен быть оператор или открывающая скобка
+            if ((text[i + 1].code == 1 or
+                text[i + 1].code == 2 or
+                text[i + 1].code == 35 or
+                text[i - 1].code == 35) and
+                is_operator(text[i - 1])):
+                text[i].code = 37
+
+class Line:                                 #содержит в себе номер строки и саму строку
+    def __init__(self, number, line):       #нужен для вывода синтаксических ошибок
         self.number = number
         self.line = line
     def __repr__(self):
@@ -262,13 +265,14 @@ class Line:
             self.string+=token[0].value
         return self.string
 
+#класс проверки
 class Checker:
-    def __init__(self, filename):
+    def __init__(self, filename):   #конструктор, в который мы передаем путь до файла с лексемами
         self.filename = filename
-        self.lines = []
-        self.tokens = []
+        self.lines = []             #массив с экземплярами класса Line
+        self.tokens = []            #массив с экземплярами класса Token 
 
-        f = open(self.filename, "r")
+        f = open(self.filename, "r")#считывание файла с лексемами в два массива
         line_counter = 1
         token_counter = 0
         for line in f.readlines():
@@ -285,30 +289,66 @@ class Checker:
                         continue
         f.close()
 
-    def var_begin_end(self):
+    def var_begin_end(self):        #проверка на наличие Var, Begin, End
         flag = {
         "var": 0,
         "begin": 0,
         "end": 0
         }
+        defined = []                #объявленные переменные
+        used = []                   #использованные переменные
         for i in range(len(self.tokens)):
             if self.tokens[i].code == 3:
+                if flag["var"]:
+                    print("Error: Var is not expected")             #Если два раза встречается Var, то ошибка
+                    print(self.get_line_by_token_id(i))
+                    return 0
                 flag["var"] = 1
                 if self.tokens[i + 1].code != 1:
-                    print("Error: expect identifier after Var")
+                    print("Error: expect identifier after Var")     #Если после Var не идет идентификатор
                     print(self.get_line_by_token_id(i + 1))
             elif self.tokens[i].code == 4:
+                if flag["begin"]:
+                    print("Error: Begin is not expected")           #Если два раза встречается Begin, то ошибка
+                    print(self.get_line_by_token_id(i))
+                    return 0
                 flag["begin"] = 1
                 if self.tokens[i + 1].code != 1:
-                    print("Error: expect identifier after Begin")
+                    print("Error: expect identifier after Begin")   #Если после Begin не идет идентификатор
                     print(self.get_line_by_token_id(i + 1))
             elif self.tokens[i].code == 5:
+                if flag["end"]:
+                    print("Error: End is not expected")             #Если два раза встречается End, то ошибка
+                    print(self.get_line_by_token_id(i))
+                    return 0
                 flag["end"] = 1
                 if self.tokens[i - 1].code != 10:
-                    print("Error: expect semicolon before End")
+                    print("Error: expect semicolon before End")     #Если перед End нет ;
                     print(self.get_line_by_token_id(i - 1))
+            else:
+                if self.tokens[i].code == 1:                        #считывание в массив объявленных и используемых переменных
+                    if not flag["begin"]:
+                        defined.append([self.tokens[i], i])
+                    elif flag["begin"]:
+                        used.append([self.tokens[i], i])
+        selected = []                                               #проверка на соответствие объявленных и используемых переменных
+        if len(defined) >= len(used):
+       	    for i in defined:
+       	        for j in used:
+       	            if i[0].value == j[0].value:
+       	                selected.append(j)
+        else:
+       	    for i in used:
+       	        for j in defined:
+       	            if i[0].value == j[0].value:
+       	                selected.append(i)
+        if selected != used:
+            for i in used:
+                if i not in selected:
+                    print("Error: variable is not defined")
+                    print(self.get_line_by_token_id(i[1]))
 
-        if not flag["var"]:
+        if not flag["var"]:                                         #проверка на наличие ключевых слов
             print("Var is not found")
         elif not flag["begin"]:
             print("Begin is not found")
@@ -318,7 +358,7 @@ class Checker:
             return 1
         return 0
 
-    def invalid(self):
+    def invalid(self):                      #проверка на правильность имен переменных и операторов
         for n_line in self.lines:
             for token in n_line.line:
                 if token[0].code == 20:
@@ -330,19 +370,20 @@ class Checker:
                     print("Error: invalid operator\n%s" % (n_line))
                     break
 
-    def get_line_by_token_id(self, token_id):
+    def get_line_by_token_id(self, token_id):#вспомогательный метод, который получает строку исходя из индекса Token'a
         for n_line in self.lines:
             for token_n in n_line.line:
                 if token_n[1] == token_id:
                     token_n[0].value = "{}"
                     return n_line
 
-    def operators(self):
-        unary_minus_detection(self.tokens)
+    def operators(self):                    #проверка на правильность использования операторов
+        unary_minus_detection(self.tokens)  #маркировка унарного минуса
         for i in range(len(self.tokens)):
             if is_operator(self.tokens[i]):
                if (is_operator(self.tokens[i - 1]) or
-                   is_operator(self.tokens[i + 1])):
+                   is_operator(self.tokens[i + 1]) or 
+                   self.tokens[i + 1].code == 10):
                    print("Error: operators chain\n%s" % (self.get_line_by_token_id(i)))
                    break
             elif self.tokens[i].code == 37:
@@ -351,9 +392,9 @@ class Checker:
                    print("Error: operators chain\n%s" % (self.get_line_by_token_id(i)))
                    break
 
-    def brackets(self):
-        checker = 0
-        last_bracket = 0
+    def brackets(self):                     #проверка правильного использования скобок
+        checker = 0                         #маркер замкнутости скобок
+        last_bracket = 0                    #индекс последней пройденной скобки
         for i in range(len(self.tokens)):
             if self.tokens[i].code == 35:
                 if is_operator(self.tokens[i + 1]):
@@ -366,6 +407,7 @@ class Checker:
                 if is_operator(self.tokens[i - 1]):
                     print("Error: operator not expected\n%s" % (self.get_line_by_token_id(i - 1)))
                 elif not is_operator(self.tokens[i + 1]) and self.tokens[i + 1].code != 10:
+                    print(self.tokens[i + 1].code)
                     print("Error: literal not expected\n%s" % (self.get_line_by_token_id(i + 1)))
                 checker-=1
                 last_bracket = i
@@ -375,7 +417,7 @@ class Checker:
             else:
                 print("Error: close bracket not found\n%s" % (self.get_line_by_token_id(last_bracket)))
 
-    def equals(self):
+    def equals(self):                   #проверка на несколько = в одном выражении
         checker = 0
         last_equal = 0
         in_exp = 0
@@ -392,16 +434,15 @@ class Checker:
             print("Error: equal is not expected")
             print(self.get_line_by_token_id(last_equal))
 
-
-
-    
 def main():
+    #global check
     program_checker = Checker("output.out")
     program_checker.var_begin_end()
     program_checker.invalid()
     program_checker.operators()
     program_checker.brackets()
     program_checker.equals()
+    #global check end
 
     '''
     program_reader = Reader()
