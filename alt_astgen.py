@@ -1,4 +1,3 @@
-'''
 class Reader:
     def flag_reading(self, filename, before, after):
         f = open(filename, "r")
@@ -42,7 +41,6 @@ class Translator:
         for token in stakenize_text:
             print(token.value, token.code)
 
-'''
 
 class Token:
     def __init__(self, el):
@@ -307,6 +305,7 @@ class Checker:
                 if self.tokens[i + 1].code != 1:
                     print("Error: expect identifier after Var")     #Если после Var не идет идентификатор
                     print(self.get_line_by_token_id(i + 1))
+                    return 0
             elif self.tokens[i].code == 4:
                 if flag["begin"]:
                     print("Error: Begin is not expected")           #Если два раза встречается Begin, то ошибка
@@ -316,6 +315,7 @@ class Checker:
                 if self.tokens[i + 1].code != 1:
                     print("Error: expect identifier after Begin")   #Если после Begin не идет идентификатор
                     print(self.get_line_by_token_id(i + 1))
+                    return 0
             elif self.tokens[i].code == 5:
                 if flag["end"]:
                     print("Error: End is not expected")             #Если два раза встречается End, то ошибка
@@ -325,6 +325,7 @@ class Checker:
                 if self.tokens[i - 1].code != 10:
                     print("Error: expect semicolon before End")     #Если перед End нет ;
                     print(self.get_line_by_token_id(i - 1))
+                    return 0
             else:
                 if self.tokens[i].code == 1:                        #считывание в массив объявленных и используемых переменных
                     if not flag["begin"]:
@@ -444,7 +445,6 @@ def main():
     program_checker.equals()
     #global check end
 
-    '''
     program_reader = Reader()
     data = program_reader.data_segment("output.out")
     program_translator = Translator()
@@ -468,7 +468,6 @@ def main():
         final_minus_sort(stack)
         stakenized_lines.append(stack)
     print(stakenized_lines)
-    '''
     return 0
 
 if __name__ == "__main__":
