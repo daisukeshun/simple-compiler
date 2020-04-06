@@ -20,10 +20,10 @@ class Reader:
         f.close()
         return array
 
-    def data_segment(self, filename):
+    def data_segment(self, filename):               #чтение объявления переменных
         return self.flag_reading(filename, 3, 4)
 
-    def text_segment(self, filename):
+    def text_segment(self, filename):               #чтение основного текста программы
         return self.flag_reading(filename, 4, 5)
 
 class Translator:
@@ -42,32 +42,31 @@ class Translator:
             print(token.value, token.code)
 
 
-class Token:
+class Token:                        #содержит в себе представление лексемы со вспомогательными свойствами
     def __init__(self, el):
-        self.value = el[0]
-        self.code = int(el[1])
-        self.order = 0
-        self.bracket = 0
+        self.value = el[0]          #значение лексемы
+        self.code = int(el[1])      #код
+        self.order = 0              #порядок
+        self.bracket = 0            #скобка, в которой эта лексема
 
     def __repr__(self):
         return "(value: '%s' code: %s)" % (self.value, self.code)
     def __str__(self):
         return self.value
 
-def tokenize(arr):
+def tokenize(arr):                  #переводит массив считанных лексем в токены
     ret = []
     for i in arr:
         ret.append(Token(i))
     return ret
 
-def is_operator(token):
+def is_operator(token):             #вспомогательная функция для определения оператора
     if 30 <= token.code <= 34:
         return True
     else:
         return False
 
-'''
-def find_min_order(text):
+def find_min_order(text):           #выбираем токен с минимальным приоритетом
     mi = text[0].order
     arr = []
     for i in text:
@@ -77,21 +76,21 @@ def find_min_order(text):
             arr.append(i)
     return arr
 
-def find_bracket(text):
+def find_bracket(text):             #находит первый токен открывающейся или закрывающейся скобки
     for i in text:
         if  35 <= i.code <= 36:
             return text.index(i)
     return False
 
 
-def collect_brackets(text):
+def collect_brackets(text):         #собираем все скобки и их индексы в один массив
     arr = []
     for item in text:
         if 35 <= item.code <= 36:
             arr.append([item, text.index(item)])
     return arr
 
-def find_last(arr):
+def find_last(arr):                 #находит повторяющиеся элементы в массиве
     example = arr[0]
     ret = []
     for i in arr:
@@ -101,7 +100,7 @@ def find_last(arr):
         arr.remove(i)
     return ret
 
-def close_bracket_fix(arr1, arr2):
+def close_bracket_fix(arr1, arr2):  #индексирует скобки в приоритете от вложенности
     current = []
     for i in range(1, len(arr1)):
         if arr1.count(arr1[i - 1]) == 1:
@@ -109,7 +108,7 @@ def close_bracket_fix(arr1, arr2):
     if not current:
         return False
     now = []
-    for i in range(1, len(arr1)):
+    for i in range(1, len(arr1)):       #супер хитрый алгоритм, завязанный на порядке открывающихся скобок и вложенности выражения
         if arr1[i - 1] == arr1[i]:
             if arr2[i - 1] > arr2[i]:
                 now.append([arr1[i], i])
@@ -120,7 +119,7 @@ def close_bracket_fix(arr1, arr2):
         arr1[i[1]] = b
     return True
 
-def brackets_ordering(text):
+def brackets_ordering(text):            #общая индексация скобок
     brackets = collect_brackets(text)
 
     counter = 0
@@ -129,7 +128,7 @@ def brackets_ordering(text):
     arr1 = []
     arr2 = []
 
-    for b in brackets:
+    for b in brackets:              #формирование массивов для close_bracket_fix
         if b[0].code == 35:
             counter+=1
             depth+=1
@@ -147,7 +146,7 @@ def brackets_ordering(text):
         brackets[i][0].bracket = arr1[i]
     return brackets
 
-def brackets_sort(ordered_brackets):
+def brackets_sort(ordered_brackets):    #сортировка скобок по порядку
     ret = []
     for i in ordered_brackets:
         if i[0].code == 35:
@@ -155,8 +154,7 @@ def brackets_sort(ordered_brackets):
         ret[i[0].bracket - 1].append(i)
     return ret
 
-
-def find_min_tokens(text):
+def find_min_tokens(text):              #находит токены в скобке с минимальным индексом
     min_bracket = text[0].bracket
     for i in text:
         if i.bracket < min_bracket:
@@ -168,8 +166,7 @@ def find_min_tokens(text):
             ret.append(i)
     return ret
 
-
-def find_operator(chosen_tokens):
+def find_operator(chosen_tokens):       #находит предпочитаемый токен из уже выбранных токенов в скобке
     prefer = None
     for i in chosen_tokens:
         if is_operator(i) and not prefer:
@@ -191,12 +188,12 @@ def calculate(stack, chosen_tokens):
             if stack[-1].code == 30:
                 stack.append(chosen_tokens.pop(0))
             else:
-                prefer = find_operator(chosen_tokens)
-                stack.append(chosen_tokens.pop(prefer))
+                prefer = find_operator(chosen_tokens)           #выбираем приоритетный токен для включения в стек
+                stack.append(chosen_tokens.pop(prefer))         #включаем приоритетный токен в стек
     if not stack:
         stack.append(chosen_tokens.pop())
 
-def remove_brackets(text):
+def remove_brackets(text):              #удаляет скобки в выражении
     while 1:
         i = find_bracket(text)
         if i:
@@ -205,7 +202,7 @@ def remove_brackets(text):
             break
     text.pop(-1)
 
-def prepare_token_brackets(text):
+def prepare_token_brackets(text):           #индексирует токены в соответствии со скобками и порядком выполнения операций
     ordered_brackets = brackets_ordering(text)
     sorted_ordered_brackets = brackets_sort(ordered_brackets)
     buf = [0 for i in range(len(text))]
@@ -222,24 +219,20 @@ def final_minus_sort(stack):
             stack[i] = stack[i + 1]
             stack[i + 1] = buf
 
-def stackenize_tokens(text):
-
-    prepare_token_brackets(text)
-    remove_brackets(text)
-    unary_minus_detection(text)
+def stackenize_tokens(text):        #строит префиксную запись
+    prepare_token_brackets(text)    #индексирует скобки в выражении
+    remove_brackets(text)           #удаляет скобки в выражении
+    unary_minus_detection(text)     #помечает унарные минусы
 
     stack = []
-
     while text:
-        chosen_tokens = find_min_tokens(text)
+        chosen_tokens = find_min_tokens(text)       #выбирает приоритетное выражение, учитывая приоритет выполнения операций
         for i in chosen_tokens:
-            text.remove(i)
+            text.remove(i)                          #удаляем уже обработанные токены
         while chosen_tokens:
-            calculate(stack, chosen_tokens)
+            calculate(stack, chosen_tokens)         #формируем префиксную запись
 
     return stack
-'''
-
 
 def unary_minus_detection(text):
     for i in range(1, len(text)):               #унарный минус может стоять только перед открывающей скобкой, 
@@ -407,7 +400,7 @@ class Checker:
             elif self.tokens[i].code == 36:
                 if is_operator(self.tokens[i - 1]):
                     print("Error: operator not expected\n%s" % (self.get_line_by_token_id(i - 1)))
-                elif not is_operator(self.tokens[i + 1]) and self.tokens[i + 1].code != 10:
+                elif not is_operator(self.tokens[i + 1]) and self.tokens[i + 1].code != 10 and self.tokens[i + 1].code != 36:
                     print(self.tokens[i + 1].code)
                     print("Error: literal not expected\n%s" % (self.get_line_by_token_id(i + 1)))
                 checker-=1
@@ -454,7 +447,7 @@ def main():
 
     text = [[]]
     i = 0
-    for arr in buf:
+    for arr in buf:             #предварительная обработка считанных лексем для токенизации
         text[i].append(arr)
         if int(arr[1]) == 10:
             text.append([])
@@ -463,10 +456,11 @@ def main():
     
     stakenized_lines = []
     for line in text:
-        tokenized_line = tokenize(line)
-        stack = stackenize_tokens(tokenized_line)
-        final_minus_sort(stack)
-        stakenized_lines.append(stack)
+        tokenized_line = tokenize(line)             #переводит выражение из массива в токены
+        stack = stackenize_tokens(tokenized_line)   #переводит массив из токенов в префиксную форму без сортировки унарных минусов
+        final_minus_sort(stack)                     #сортирует унарные минусы
+        stakenized_lines.append(stack)              #добавляет полученное выражение в stakenized_lines
+    stakenized_lines.reverse()                      #делаем из префиксной формы постфиксную
     print(stakenized_lines)
     return 0
 
