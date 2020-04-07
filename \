@@ -39,14 +39,9 @@ class Translator:
         print("_start:")
 
     def generate_ast(self, stakenized_lines):
-        current_token = None
         for expression in stakenized_lines:
-            while len(expression):
-                current_token = expression.pop()
-                print(current_token.code)
-            
-            
-
+            for token in expression:
+                print(token)
 
 
 class Token:                        #содержит в себе представление лексемы со вспомогательными свойствами
@@ -176,15 +171,12 @@ def find_min_tokens(text):              #находит токены в скоб
 def find_operator(chosen_tokens):       #находит предпочитаемый токен из уже выбранных токенов в скобке
     prefer = None
     for i in chosen_tokens:
-        if i.code == 37:
-            prefer = i
         if is_operator(i) and not prefer:
             prefer = i
         elif is_operator(i) and prefer:
-            if i.code <= prefer.code and chosen_tokens.index(prefer) > chosen_tokens.index(i):
+            if i.code <= prefer.code:
                 prefer = i
     if prefer:
-        print(prefer.code)
         return chosen_tokens.index(prefer)
     else:
         return 0
@@ -203,7 +195,6 @@ def calculate(stack, chosen_tokens):
     if not stack:
         stack.append(chosen_tokens.pop())
 
-
 def remove_brackets(text):              #удаляет скобки в выражении
     while 1:
         i = find_bracket(text)
@@ -220,8 +211,6 @@ def prepare_token_brackets(text):           #индексирует токены
     for arr in sorted_ordered_brackets:
         for i in range(arr[0][1], arr[1][1]):
             buf[i] = arr[0][0].bracket
-            if text[i - 1].code == 37:
-                buf[i - 1] = arr[0][0].bracket
     for i in range(len(text)):
         text[i].bracket = buf[i]
 
@@ -232,11 +221,10 @@ def final_minus_sort(stack):
             stack[i] = stack[i + 1]
             stack[i + 1] = buf
 
-
 def stackenize_tokens(text):        #строит префиксную запись
-    unary_minus_detection(text)     #помечает унарные минусы
     prepare_token_brackets(text)    #индексирует скобки в выражении
     remove_brackets(text)           #удаляет скобки в выражении
+    unary_minus_detection(text)     #помечает унарные минусы
 
     stack = []
     while text:
@@ -472,10 +460,11 @@ def main():
     for line in text:
         tokenized_line = tokenize(line)             #переводит выражение из массива в токены
         stack = stackenize_tokens(tokenized_line)   #переводит массив из токенов в префиксную форму без сортировки унарных минусов
-        final_minus_sort(stack)
+        final_minus_sort(stack)                     #сортирует унарные минусы
         stakenized_lines.append(stack)              #добавляет полученное выражение в stakenized_lines
+    for i in stakenized_lines:        #делаем из префиксной формы постфиксную
+        i.reverse()
     print(stakenized_lines)
-    program_translator.generate_ast(stakenized_lines)
     return 0
 
 if __name__ == "__main__":
