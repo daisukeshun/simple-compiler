@@ -26,6 +26,47 @@ class Reader:
     def text_segment(self, filename):               #чтение основного текста программы
         return self.flag_reading(filename, 4, 5)
 
+class VariableDeclarator:
+    def __init__(self, var = None, init = None):
+        self.type = "VariableDeclarator"
+        self.id = var
+        self.init = init
+    def __repr__(self):
+        return "%s %s %s " % (self.type, self.id, self.init)
+
+
+class Literal:
+    def __init__(self, value = None, raw = ""):
+        self.type = "Literal"
+        self.value = value
+        self.raw = raw
+    def __repr__(self):
+        return "%s %s %s " % (self.type, self.value, self.raw)
+
+class Identifier:
+    def __init__(self, name = ""):
+        self.type = "Identifier"
+        self.name = name
+    def __repr__(self):
+        return "%s %s " % (self.type, self.name)
+
+class BinaryExpression:
+    def __init__(self, operator = None, left = None, right = None):
+        self.type = "BinaryExpression"
+        self.operator = operator
+        self.left = left
+        self.right = right
+    def __repr__(self):
+        return "%s %s %s %s " % (self.type, self.operator, self.left, self.right)
+
+class UnaryExpression:
+    def __init__(self, operator = "-", argument = None):
+        self.type = "UnaryExpression"
+        self.operator = operator
+        self.argument = argument
+    def __repr__(self):
+        return "%s %s %s " % (self.type, self.operator, self.argument)
+
 class Translator:
     def data(self, data):
         print("global _start")
@@ -38,14 +79,65 @@ class Translator:
         print("section .text")
         print("_start:")
 
+    def to_class(self, token):
+        if is_operator(token):
+            if token.code == 30:
+                return VariableDeclarator()
+            else:
+                return BinaryExpression(token.value)
+        elif token.code == 1:
+            return Identifier(token.value)
+        elif token.code == 2:
+            return Literal(int(token.value), token.value)
+        elif token.code == 37:
+            return UnaryExpression()
+
+    def to_dict(self, obj, classkey=None):
+        if isinstance(obj, dict):
+            data = {}
+            for (k, v) in obj.items():
+                data[k] = self.to_dict(v, classkey)
+            return data
+        elif hasattr(obj, "_ast"):
+            return self.to_dict(obj._ast())
+        elif hasattr(obj, "__iter__") and not isinstance(obj, str):
+            return [self.to_dict(v, classkey) for v in obj]
+        elif hasattr(obj, "__dict__"):
+            data = dict([(key, self.to_dict(value, classkey))
+                for key, value in obj.__dict__.items()
+                if not callable(value) and not key.startswith('_')])
+            if classkey is not None and hasattr(obj, "__class__"):
+                data[classkey] = obj.__class__.__name__
+            return data
+        else:
+            return obj
+
     def generate_ast(self, stakenized_lines):
+        print(stakenized_lines)
+        print("\n")
         current_token = None
+        tree = None
+        last = None
         for expression in stakenized_lines:
+            links = []
             while len(expression):
-                current_token = expression.pop()
-                print(current_token.code)
-            
-            
+                classify = self.to_class(expression.pop(0))
+                if last:
+                    if last.type == "VariableDeclarator":
+                        last.id = classify
+                        last.init = self.to_class(expression.pop(0))
+                        classify = last.init
+                        tree = last
+                    elif last.type == "BinaryExpression":
+                        last.left = classify
+                        if not last.right:
+                            links.append(last)
+                    elif last.type == "UnaryExpression":
+                        last.argument = classify
+                last = classify
+                print(links)
+            print(self.to_dict(tree))
+
 
 
 
@@ -175,16 +267,21 @@ def find_min_tokens(text):              #находит токены в скоб
 
 def find_operator(chosen_tokens):       #находит предпочитаемый токен из уже выбранных токенов в скобке
     prefer = None
+    unary_minus = None
     for i in chosen_tokens:
         if i.code == 37:
-            prefer = i
-        if is_operator(i) and not prefer:
-            prefer = i
-        elif is_operator(i) and prefer:
-            if i.code <= prefer.code and chosen_tokens.index(prefer) > chosen_tokens.index(i):
+            unary_minus = i
+        if not prefer:
+            if is_operator(i):
                 prefer = i
+        elif prefer:
+            if is_operator(i):
+                if i.code <= prefer.code:
+                    prefer = i
     if prefer:
-        print(prefer.code)
+        if unary_minus:
+            if chosen_tokens.index(unary_minus) < chosen_tokens.index(prefer):
+                prefer = unary_minus
         return chosen_tokens.index(prefer)
     else:
         return 0
@@ -474,7 +571,6 @@ def main():
         stack = stackenize_tokens(tokenized_line)   #переводит массив из токенов в префиксную форму без сортировки унарных минусов
         final_minus_sort(stack)
         stakenized_lines.append(stack)              #добавляет полученное выражение в stakenized_lines
-    print(stakenized_lines)
     program_translator.generate_ast(stakenized_lines)
     return 0
 

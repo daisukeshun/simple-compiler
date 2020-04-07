@@ -1,0 +1,7 @@
+[H[2J[3Jglobal _start
+section .data
+a	 dd 0x00
+b	 dd 0x00
+c	 dd 0x00
+{'type': 'VariableDeclarator', 'id': {'type': 'Identifier', 'name': 'a'}, 'init': {'type': 'UnaryExpression', 'operator': '-', 'argument': {'type': 'BinaryExpression', 'operator': '-', 'left': {'type': 'Literal', 'value': 10, 'raw': '10'}, 'right': {'type': 'UnaryExpression', 'operator': '-', 'argument': {'type': 'BinaryExpression', 'operator': '*', 'left': {'type': 'Literal', 'value': 1, 'raw': '1'}, 'right': {'type': 'BinaryExpression', 'operator': '+', 'left': {'type': 'BinaryExpression', 'operator': '+', 'left': None, 'right': None}, 'right': {'type': 'Literal', 'value': 2, 'raw': '2'}}}}}}}
+{'type': 'VariableDeclarator', 'id': {'type': 'Identifier', 'name': 'b'}, 'init': {'type': 'Literal', 'value': 200, 'raw': '200'}}
