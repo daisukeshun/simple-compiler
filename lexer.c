@@ -62,14 +62,14 @@ unsigned int check(char * word)
 			}
 			switch (word[i])
 			{
+				case '=':
+					code = 30;
+					break;
 				case ';':
 					code = 10;
 				break;
 				case ',':
 					code = 11;
-				break;
-				case '=':
-					code = 30;
 				break;
 				case '+':
 					code = 31;
@@ -107,6 +107,10 @@ unsigned int check(char * word)
 	}
 	if(mystrcmp(word, "End")){
 		code = 5;
+	}
+	if(mystrcmp(word, ":="))
+	{
+		code = 30;
 	}
 
 	if(!(code >= 30 && code < 40))
