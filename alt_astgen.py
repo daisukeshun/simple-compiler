@@ -34,7 +34,6 @@ class VariableDeclarator:
     def __repr__(self):
         return "%s %s %s " % (self.type, self.id, self.init)
 
-
 class Literal:
     def __init__(self, value = None, raw = ""):
         self.type = "Literal"
@@ -113,43 +112,22 @@ class Translator:
             return obj
 
     def generate_ast(self, stakenized_lines):
-        print(stakenized_lines)
-        print("\n")
-        current_token = None
-        tree = None
-        last = None
         for expression in stakenized_lines:
-            links = []
-            while len(expression):
-                classify = self.to_class(expression.pop(0))
-                if last:
-                    if last.type == "VariableDeclarator":
-                        last.id = classify
-                        last.init = self.to_class(expression.pop(0))
-                        classify = last.init
-                        tree = last
-                    elif last.type == "BinaryExpression":
-                        last.left = classify
-                        if not last.right:
-                            links.append(last)
-                    elif last.type == "UnaryExpression":
-                        last.argument = classify
-                last = classify
-                print(links)
-            print(self.to_dict(tree))
 
 
 
-
-class Token:                        #содержит в себе представление лексемы со вспомогательными свойствами
+class Token:                            #содержит в себе представление лексемы со вспомогательными свойствами
     def __init__(self, el):
-        self.value = el[0]          #значение лексемы
-        self.code = int(el[1])      #код
-        self.order = 0              #порядок
-        self.bracket = 0            #скобка, в которой эта лексема
+        self.value = el[0]              #значение лексемы
+        self.code = int(el[1])          #код
+        if 30 <= self.code <= 32:
+            self.order = 0              #порядок
+        elif 33 <= self.code <= 34:
+            self.order = 2              #порядок
+        self.bracket = 0                #скобка, в которой эта лексема
 
     def __repr__(self):
-        return "(value: '%s' code: %s)" % (self.value, self.code)
+        return "%s" % (self.value)
     def __str__(self):
         return self.value
 
@@ -267,10 +245,10 @@ def find_min_tokens(text):              #находит токены в скоб
 
 def find_operator(chosen_tokens):       #находит предпочитаемый токен из уже выбранных токенов в скобке
     prefer = None
-    unary_minus = None
     for i in chosen_tokens:
-        if i.code == 37:
-            unary_minus = i
+        if i.code == 37 and chosen_tokens[chosen_tokens.index(i) + 1].code == 35:
+            prefer = i
+            break
         if not prefer:
             if is_operator(i):
                 prefer = i
@@ -279,9 +257,6 @@ def find_operator(chosen_tokens):       #находит предпочитаем
                 if i.code <= prefer.code:
                     prefer = i
     if prefer:
-        if unary_minus:
-            if chosen_tokens.index(unary_minus) < chosen_tokens.index(prefer):
-                prefer = unary_minus
         return chosen_tokens.index(prefer)
     else:
         return 0
@@ -300,7 +275,6 @@ def calculate(stack, chosen_tokens):
     if not stack:
         stack.append(chosen_tokens.pop())
 
-
 def remove_brackets(text):              #удаляет скобки в выражении
     while 1:
         i = find_bracket(text)
@@ -308,7 +282,9 @@ def remove_brackets(text):              #удаляет скобки в выра
             text.pop(i)
         else:
             break
-    text.pop(-1)
+    for i in text:
+        if i.code == 10:
+            text.remove(i)
 
 def prepare_token_brackets(text):           #индексирует токены в соответствии со скобками и порядком выполнения операций
     ordered_brackets = brackets_ordering(text)
@@ -328,13 +304,60 @@ def final_minus_sort(stack):
             buf = stack[i]
             stack[i] = stack[i + 1]
             stack[i + 1] = buf
+            
+def op_count(text):
+    counter = 0
+    for i in text:
+        if is_operator(i):
+            counter+=1
+    return counter
+
+def op_proc(op_arr):
+    bracket = op_arr[0].bracket + 1
+    for i in op_arr:
+        if i.order == 2:
+            i.bracket = bracket
+            bracket+=1
+
+def bracketing(text):
+    operators = list(filter((lambda x: is_operator(x)), text))
+    op_proc(operators)
+    while operators:
+        min_op = find_min_order(operators)
+        for i in min_op:
+            index = text.index(i)
+            text[index].bracket = i.bracket
+            text[index + 1].bracket = i.bracket
+            text[index - 1].bracket = i.bracket
+            operators.remove(i)
+    unary_minus_detection(text)     #помечает унарные минусы
+
+    checker = text[0].bracket
+    br = []
+    for i in range(1, len(text)):
+        if checker != text[i].bracket:
+            difference = abs(checker - text[i].bracket)
+            while difference:
+                if checker < text[i].bracket:
+                    br.append([i, Token(['(', '35'])])
+                elif checker > text[i].bracket:
+                    br.append([i, Token([')', '36'])])
+                difference-=1
+            checker = text[i].bracket
+    i = 0
+    while br:
+        el = br.pop(0)
+        text.insert(el[0], el[1])
+        for arr in br: 
+            arr[0]+=1
+    for i in text:
+        i.bracket = 0
 
 
 def stackenize_tokens(text):        #строит префиксную запись
-    unary_minus_detection(text)     #помечает унарные минусы
+    bracketing(text)
     prepare_token_brackets(text)    #индексирует скобки в выражении
-    remove_brackets(text)           #удаляет скобки в выражении
-
+    
     stack = []
     while text:
         chosen_tokens = find_min_tokens(text)       #выбирает приоритетное выражение, учитывая приоритет выполнения операций
@@ -343,6 +366,7 @@ def stackenize_tokens(text):        #строит префиксную запи�
         while chosen_tokens:
             calculate(stack, chosen_tokens)         #формируем префиксную запись
 
+    remove_brackets(stack)
     return stack
 
 def unary_minus_detection(text):
@@ -352,8 +376,10 @@ def unary_minus_detection(text):
                 text[i + 1].code == 2 or
                 text[i + 1].code == 35 or
                 text[i - 1].code == 35) and
-                is_operator(text[i - 1])):
+                (text[i - 1].code == 35 or
+                is_operator(text[i - 1]))):
                 text[i].code = 37
+                text[i].bracket = text[i + 1].bracket
 
 class Line:                                 #содержит в себе номер строки и саму строку
     def __init__(self, number, line):       #нужен для вывода синтаксических ошибок
@@ -404,32 +430,26 @@ class Checker:
                 if flag["var"]:
                     print("Error: Var is not expected")             #Если два раза встречается Var, то ошибка
                     print(self.get_line_by_token_id(i))
-                    return 0
                 flag["var"] = 1
                 if self.tokens[i + 1].code != 1:
                     print("Error: expect identifier after Var")     #Если после Var не идет идентификатор
                     print(self.get_line_by_token_id(i + 1))
-                    return 0
             elif self.tokens[i].code == 4:
                 if flag["begin"]:
                     print("Error: Begin is not expected")           #Если два раза встречается Begin, то ошибка
                     print(self.get_line_by_token_id(i))
-                    return 0
                 flag["begin"] = 1
                 if self.tokens[i + 1].code != 1:
                     print("Error: expect identifier after Begin")   #Если после Begin не идет идентификатор
                     print(self.get_line_by_token_id(i + 1))
-                    return 0
             elif self.tokens[i].code == 5:
                 if flag["end"]:
                     print("Error: End is not expected")             #Если два раза встречается End, то ошибка
                     print(self.get_line_by_token_id(i))
-                    return 0
                 flag["end"] = 1
                 if self.tokens[i - 1].code != 10:
                     print("Error: expect semicolon before End")     #Если перед End нет ;
                     print(self.get_line_by_token_id(i - 1))
-                    return 0
             else:
                 if self.tokens[i].code == 1:                        #считывание в массив объявленных и используемых переменных
                     if not flag["begin"]:
@@ -469,11 +489,9 @@ class Checker:
                 if token[0].code == 20:
                     token[0].value = "{}"
                     print("Error: invalid identifier\n%s" % (n_line))
-                    break
                 if token[0].code == 0:
                     token[0].value = "{}"
                     print("Error: invalid operator\n%s" % (n_line))
-                    break
 
     def get_line_by_token_id(self, token_id):#вспомогательный метод, который получает строку исходя из индекса Token'a
         for n_line in self.lines:
@@ -490,21 +508,20 @@ class Checker:
                    is_operator(self.tokens[i + 1]) or 
                    self.tokens[i + 1].code == 10):
                    print("Error: operators chain\n%s" % (self.get_line_by_token_id(i)))
-                   break
             elif self.tokens[i].code == 37:
                if (self.tokens[i - 1].code == 37 or
                    self.tokens[i + 1].code == 37):
                    print("Error: operators chain\n%s" % (self.get_line_by_token_id(i)))
-                   break
 
     def brackets(self):                     #проверка правильного использования скобок
         checker = 0                         #маркер замкнутости скобок
         last_bracket = 0                    #индекс последней пройденной скобки
         for i in range(len(self.tokens)):
             if self.tokens[i].code == 35:
-                if is_operator(self.tokens[i + 1]):
+                if is_operator(self.tokens[i + 1]) and self.tokens[i + 1].code != 37 and self.tokens[i + 1].code != 35:
+                    print(self.tokens[i + 1].code)
                     print("Error: operator not expected\n%s" % (self.get_line_by_token_id(i + 1)))
-                elif not is_operator(self.tokens[i - 1]) and self.tokens[i - 1].code != 37:
+                elif not is_operator(self.tokens[i - 1]) and self.tokens[i - 1].code != 37 and self.tokens[i - 1].code != 35:
                     print("Error: literal not expected\n%s" % (self.get_line_by_token_id(i - 1)))
                 checker+=1
                 last_bracket = i
@@ -512,15 +529,14 @@ class Checker:
                 if is_operator(self.tokens[i - 1]):
                     print("Error: operator not expected\n%s" % (self.get_line_by_token_id(i - 1)))
                 elif not is_operator(self.tokens[i + 1]) and self.tokens[i + 1].code != 10 and self.tokens[i + 1].code != 36:
-                    print(self.tokens[i + 1].code)
                     print("Error: literal not expected\n%s" % (self.get_line_by_token_id(i + 1)))
                 checker-=1
                 last_bracket = i
         if checker:
             if checker > 0:
-                print("Error: open bracket not found\n%s" % (self.get_line_by_token_id(last_bracket)))
-            else:
                 print("Error: close bracket not found\n%s" % (self.get_line_by_token_id(last_bracket)))
+            else:
+                print("Error: open bracket not found\n%s" % (self.get_line_by_token_id(last_bracket)))
 
     def equals(self):                   #проверка на несколько = в одном выражении
         checker = 0
@@ -553,7 +569,7 @@ def main():
     data = program_reader.data_segment("output.out")
     program_translator = Translator()
 
-    program_translator.data(data)
+    #program_translator.data(data)
     buf = program_reader.text_segment("output.out")
 
     text = [[]]
@@ -570,7 +586,10 @@ def main():
         tokenized_line = tokenize(line)             #переводит выражение из массива в токены
         stack = stackenize_tokens(tokenized_line)   #переводит массив из токенов в префиксную форму без сортировки унарных минусов
         final_minus_sort(stack)
+        stack.reverse()
         stakenized_lines.append(stack)              #добавляет полученное выражение в stakenized_lines
+
+
     program_translator.generate_ast(stakenized_lines)
     return 0
 
