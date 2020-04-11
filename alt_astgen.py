@@ -299,6 +299,9 @@ def main():
     program_checker.invalid()
     #global check end
 
+    if not program_checker.result:
+        return 0
+
     program_reader = Reader()
     data = program_reader.data_segment("output.out")
     buf = program_reader.text_segment("output.out")

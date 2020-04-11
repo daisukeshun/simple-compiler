@@ -53,6 +53,7 @@ class Checker:
         self.filename = filename
         self.lines = []             #массив с экземплярами класса Line
         self.tokens = []            #массив с экземплярами класса Token 
+        self.result = True
 
         f = open(self.filename, "r")#считывание файла с лексемами в два массива
         line_counter = 1
@@ -72,7 +73,6 @@ class Checker:
         f.close()
 
     def var_begin_end(self):        #проверка на наличие Var, Begin, End
-        result = False
         flag = {
         "var": 0,
         "begin": 0,
@@ -83,26 +83,32 @@ class Checker:
         for i in range(len(self.tokens)):
             if self.tokens[i].code == 3:
                 if flag["var"]:
+                    self.result = False
                     print("Error: Var is not expected")             #Если и более раз встречается Var, то ошибка
                     print(self.get_line_by_token_id(i))
                 flag["var"] = 1
                 if self.tokens[i + 1].code != 1:
+                    self.result = False
                     print("Error: expect identifier after Var")     #Если после Var не идет идентификатор
                     print(self.get_line_by_token_id(i + 1))
             elif self.tokens[i].code == 4:
                 if flag["begin"]:
+                    self.result = False
                     print("Error: Begin is not expected")           #Если два и более раз встречается Begin, то ошибка
                     print(self.get_line_by_token_id(i))
                 flag["begin"] = 1
                 if self.tokens[i + 1].code != 1:
+                    self.result = False
                     print("Error: expect identifier after Begin")   #Если после Begin не идет идентификатор
                     print(self.get_line_by_token_id(i + 1))
             elif self.tokens[i].code == 5:
                 if flag["end"]:
+                    self.result = False
                     print("Error: End is not expected")             #Если два и более раз встречается End, то ошибка
                     print(self.get_line_by_token_id(i))
                 flag["end"] = 1
                 if self.tokens[i - 1].code != 10:
+                    self.result = False
                     print("Error: expect semicolon before End")     #Если перед End нет ;
                     print(self.get_line_by_token_id(i - 1))
             else:
@@ -113,13 +119,14 @@ class Checker:
                         used.append([self.tokens[i], i])
 
         if not flag["var"]:                                         #проверка на наличие ключевых слов
+            self.result = False
             print("Var is not found")
         elif not flag["begin"]:
+            self.result = False
             print("Begin is not found")
         elif not flag["end"]:
+            self.result = False
             print("End not found")
-        else:
-            result = True
 
         selected = []                                               #проверка на соответствие объявленных и используемых переменных
         if len(defined) >= len(used):
@@ -136,20 +143,18 @@ class Checker:
         if selected != used:
             for i in used:
                 if i not in selected:
+                    self.result = False
                     print("Error: variable is not defined")
                     print(self.get_line_by_token_id(i[1]))
-                    result = False
                                                                     #конец проверки объявленных и используемых переменных
-        return result
 
     def invalid(self):                          #проверка на правильность имен переменных и операторов
         result = True
         for n_line in self.lines:
             for token in n_line.line:
                 if token[0].code == 20 or token[0].code == 0:
-                    result = False
+                    self.result = False
                     print("Error: invalid identifier\n%s" % (n_line))
-        return result
 
     def get_line_by_token_id(self, token_id):   #вспомогательный метод, который получает строку исходя из индекса Token'a
         for n_line in self.lines:
@@ -163,9 +168,11 @@ class Checker:
         for i in range(len(self.tokens)):
             if is_operator(self.tokens[i]):
                 if self.tokens[i - 1].code != 1 and self.tokens[i - 1].code != 2 and self.tokens[i - 1].code != 36:
+                   self.result = False
                    print("Error: %s not expected\n%s" % (self.tokens[i - 1], self.get_line_by_token_id(i)))
             if self.tokens[i].code == 37:
                 if self.tokens[i - 1].code != 35:
+                   self.result = False
                    print("Error: %s not expected\n%s" % (self.tokens[i - 1], self.get_line_by_token_id(i)))
 
     def identifiers_and_literals(self):
@@ -178,9 +185,11 @@ class Checker:
             if self.tokens[i].code == 1 or self.tokens[i].code == 2:
                 if section == 1:
                     if self.tokens[i - 1].code != 1 and self.tokens[i - 1].code != 3 and self.tokens[i - 1].code != 10 and self.tokens[i - 1].code != 11:
+                        self.result = False
                         print("Error: %s not expected\n%s" % (self.tokens[i - 1], self.get_line_by_token_id(i)))
                 elif section == 2:
                     if self.tokens[i - 1].code != 37 and self.tokens[i - 1].code != 35 and not is_operator(self.tokens[i - 1]) and self.tokens[i + 1].code != 30:
+                        self.result = False
                         print("Error: %s not expected\n%s" % (self.tokens[i - 1], self.get_line_by_token_id(i)))
 
     def brackets(self):                     #проверка правильного использования скобок
@@ -190,14 +199,17 @@ class Checker:
             if self.tokens[i].code == 35:   #если открывающая скобка
                 checker+=1
                 if self.tokens[i - 1].code != 35 and self.tokens[i - 1].code != 37 and not is_operator(self.tokens[i - 1]):
+                    self.result = False
                     print("Error: %s not expected\n%s" % (self.tokens[i - 1], self.get_line_by_token_id(i + 1)))
                     last_bracket = i
             elif self.tokens[i].code == 36: #если закрывающая скобка
                 checker-=1
                 if self.tokens[i - 1].code != 1 and self.tokens[i - 1].code != 2  and self.tokens[i - 1].code != 36:
+                    self.result = False
                     print("Error: %s not expected\n%s" % (self.tokens[i - 1], self.get_line_by_token_id(i + 1)))
                     last_bracket = i
         if checker:                         #если скобки не замкнуты
+            self.result = False
             if checker > 0:
                 print("Error: close bracket not found\n%s" % (self.get_line_by_token_id(last_bracket)))
             else:
@@ -218,6 +230,7 @@ class Checker:
                 checker-=1
 
         if checker > 0:
+            self.result = False
             for declarator in invalid_declarations:
                 print("Error: equal is not expected")
                 print(self.get_line_by_token_id(declarator))
