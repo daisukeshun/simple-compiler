@@ -288,11 +288,11 @@ def prefixation(text):
         final_prefix_forms.append(final_prefix_form)
     return final_prefix_forms
 
-
 def main():
     #global check
     program_checker = Checker("output.out")
     program_checker.var_begin_end()
+    program_checker.identifiers_and_literals()
     program_checker.operators()
     program_checker.brackets()
     program_checker.equals()

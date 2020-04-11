@@ -72,6 +72,7 @@ class Checker:
         f.close()
 
     def var_begin_end(self):        #проверка на наличие Var, Begin, End
+        result = False
         flag = {
         "var": 0,
         "begin": 0,
@@ -82,7 +83,7 @@ class Checker:
         for i in range(len(self.tokens)):
             if self.tokens[i].code == 3:
                 if flag["var"]:
-                    print("Error: Var is not expected")             #Если два раза встречается Var, то ошибка
+                    print("Error: Var is not expected")             #Если и более раз встречается Var, то ошибка
                     print(self.get_line_by_token_id(i))
                 flag["var"] = 1
                 if self.tokens[i + 1].code != 1:
@@ -90,7 +91,7 @@ class Checker:
                     print(self.get_line_by_token_id(i + 1))
             elif self.tokens[i].code == 4:
                 if flag["begin"]:
-                    print("Error: Begin is not expected")           #Если два раза встречается Begin, то ошибка
+                    print("Error: Begin is not expected")           #Если два и более раз встречается Begin, то ошибка
                     print(self.get_line_by_token_id(i))
                 flag["begin"] = 1
                 if self.tokens[i + 1].code != 1:
@@ -98,18 +99,28 @@ class Checker:
                     print(self.get_line_by_token_id(i + 1))
             elif self.tokens[i].code == 5:
                 if flag["end"]:
-                    print("Error: End is not expected")             #Если два раза встречается End, то ошибка
+                    print("Error: End is not expected")             #Если два и более раз встречается End, то ошибка
                     print(self.get_line_by_token_id(i))
                 flag["end"] = 1
                 if self.tokens[i - 1].code != 10:
                     print("Error: expect semicolon before End")     #Если перед End нет ;
                     print(self.get_line_by_token_id(i - 1))
             else:
-                if self.tokens[i].code == 1:                        #считывание в массив объявленных и используемых переменных
+                if self.tokens[i].code == 1:                        #считывание в массивы объявленных и используемых переменных
                     if not flag["begin"]:
                         defined.append([self.tokens[i], i])
                     elif flag["begin"]:
                         used.append([self.tokens[i], i])
+
+        if not flag["var"]:                                         #проверка на наличие ключевых слов
+            print("Var is not found")
+        elif not flag["begin"]:
+            print("Begin is not found")
+        elif not flag["end"]:
+            print("End not found")
+        else:
+            result = True
+
         selected = []                                               #проверка на соответствие объявленных и используемых переменных
         if len(defined) >= len(used):
        	    for i in defined:
@@ -121,72 +132,72 @@ class Checker:
        	        for j in defined:
        	            if i[0].value == j[0].value:
        	                selected.append(i)
+
         if selected != used:
             for i in used:
                 if i not in selected:
                     print("Error: variable is not defined")
                     print(self.get_line_by_token_id(i[1]))
+                    result = False
+                                                                    #конец проверки объявленных и используемых переменных
+        return result
 
-        if not flag["var"]:                                         #проверка на наличие ключевых слов
-            print("Var is not found")
-        elif not flag["begin"]:
-            print("Begin is not found")
-        elif not flag["end"]:
-            print("End not found")
-        else:
-            return 1
-        return 0
-
-    def invalid(self):                      #проверка на правильность имен переменных и операторов
+    def invalid(self):                          #проверка на правильность имен переменных и операторов
+        result = True
         for n_line in self.lines:
             for token in n_line.line:
-                if token[0].code == 20:
-                    token[0].value = "{}"
+                if token[0].code == 20 or token[0].code == 0:
+                    result = False
                     print("Error: invalid identifier\n%s" % (n_line))
-                if token[0].code == 0:
-                    token[0].value = "{}"
-                    print("Error: invalid operator\n%s" % (n_line))
+        return result
 
-    def get_line_by_token_id(self, token_id):#вспомогательный метод, который получает строку исходя из индекса Token'a
+    def get_line_by_token_id(self, token_id):   #вспомогательный метод, который получает строку исходя из индекса Token'a
         for n_line in self.lines:
             for token_n in n_line.line:
                 if token_n[1] == token_id:
-                    token_n[0].value = "{}"
+                    token_n[0].value = "[]"
                     return n_line
 
-    def operators(self):                    #проверка на правильность использования операторов
-        unary_minus_detection(self.tokens)  #маркировка унарного минуса
+    def operators(self):                        #проверка на правильность использования операторов
+        unary_minus_detection(self.tokens)      #маркировка унарного минуса
         for i in range(len(self.tokens)):
             if is_operator(self.tokens[i]):
-               if (is_operator(self.tokens[i - 1]) or
-                   is_operator(self.tokens[i + 1]) or 
-                   self.tokens[i + 1].code == 10):
-                   print("Error: operators chain\n%s" % (self.get_line_by_token_id(i)))
-            elif self.tokens[i].code == 37:
-               if (self.tokens[i - 1].code == 37 or
-                   self.tokens[i + 1].code == 37):
-                   print("Error: operators chain\n%s" % (self.get_line_by_token_id(i)))
+                if self.tokens[i - 1].code != 1 and self.tokens[i - 1].code != 2 and self.tokens[i - 1].code != 36:
+                   print("Error: %s not expected\n%s" % (self.tokens[i - 1], self.get_line_by_token_id(i)))
+            if self.tokens[i].code == 37:
+                if self.tokens[i - 1].code != 35:
+                   print("Error: %s not expected\n%s" % (self.tokens[i - 1], self.get_line_by_token_id(i)))
+
+    def identifiers_and_literals(self):
+        section = 0
+        for i in range(len(self.tokens)):
+            if self.tokens[i].code == 3:
+                section = 1
+            if self.tokens[i].code == 4:
+                section = 2
+            if self.tokens[i].code == 1 or self.tokens[i].code == 2:
+                if section == 1:
+                    if self.tokens[i - 1].code != 1 and self.tokens[i - 1].code != 3 and self.tokens[i - 1].code != 10 and self.tokens[i - 1].code != 11:
+                        print("Error: %s not expected\n%s" % (self.tokens[i - 1], self.get_line_by_token_id(i)))
+                elif section == 2:
+                    if self.tokens[i - 1].code != 37 and self.tokens[i - 1].code != 35 and not is_operator(self.tokens[i - 1]) and self.tokens[i + 1].code != 30:
+                        print("Error: %s not expected\n%s" % (self.tokens[i - 1], self.get_line_by_token_id(i)))
 
     def brackets(self):                     #проверка правильного использования скобок
         checker = 0                         #маркер замкнутости скобок
         last_bracket = 0                    #индекс последней пройденной скобки
         for i in range(len(self.tokens)):
-            if self.tokens[i].code == 35:
-                if is_operator(self.tokens[i + 1]) and self.tokens[i + 1].code != 37 and self.tokens[i + 1].code != 35:
-                    print(self.tokens[i + 1].code)
-                    print("Error: operator not expected\n%s" % (self.get_line_by_token_id(i + 1)))
-                elif not is_operator(self.tokens[i - 1]) and self.tokens[i - 1].code != 37 and self.tokens[i - 1].code != 35:
-                    print("Error: literal not expected\n%s" % (self.get_line_by_token_id(i - 1)))
+            if self.tokens[i].code == 35:   #если открывающая скобка
                 checker+=1
-                last_bracket = i
-            elif self.tokens[i].code == 36:
-                if is_operator(self.tokens[i - 1]):
-                    print("Error: operator not expected\n%s" % (self.get_line_by_token_id(i - 1)))
-                elif not is_operator(self.tokens[i + 1]) and self.tokens[i + 1].code != 10 and self.tokens[i + 1].code != 36:
-                    print("Error: literal not expected\n%s" % (self.get_line_by_token_id(i + 1)))
+                if self.tokens[i - 1].code != 35 and self.tokens[i - 1].code != 37 and not is_operator(self.tokens[i - 1]):
+                    print("Error: %s not expected\n%s" % (self.tokens[i - 1], self.get_line_by_token_id(i + 1)))
+                    last_bracket = i
+            elif self.tokens[i].code == 36: #если закрывающая скобка
                 checker-=1
-                last_bracket = i
-        if checker:
+                if self.tokens[i - 1].code != 1 and self.tokens[i - 1].code != 2  and self.tokens[i - 1].code != 36:
+                    print("Error: %s not expected\n%s" % (self.tokens[i - 1], self.get_line_by_token_id(i + 1)))
+                    last_bracket = i
+        if checker:                         #если скобки не замкнуты
             if checker > 0:
                 print("Error: close bracket not found\n%s" % (self.get_line_by_token_id(last_bracket)))
             else:
@@ -194,17 +205,19 @@ class Checker:
 
     def equals(self):                   #проверка на несколько = в одном выражении
         checker = 0
-        last_equal = 0
+        invalid_declarations = []
         in_exp = 0
         for i in range(len(self.tokens)):
             if self.tokens[i].code == 30:
                 in_exp = 1
                 checker+=1
-                last_equal = i
+                if checker > 1:
+                    invalid_declarations.append(i)
             elif self.tokens[i].code == 10 and in_exp:
                 in_exp = 0
                 checker-=1
 
         if checker > 0:
-            print("Error: equal is not expected")
-            print(self.get_line_by_token_id(last_equal))
+            for declarator in invalid_declarations:
+                print("Error: equal is not expected")
+                print(self.get_line_by_token_id(declarator))
