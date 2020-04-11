@@ -1,5 +1,71 @@
 from checker import *
 
+def translate_data_segment(data_segment):
+    print("section .data")
+    for var_name in data_segment:
+        if int(var_name[1]) == 1:
+            print("\t%s:\tdd 0x00" % var_name[0])
+
+    print("section .bss")
+
+def calc_print(operator_token):
+    if operator_token.code == 31:
+        print("\tadd\teax, ebx")
+    elif operator_token.code == 32:
+        print("\tsub\teax, ebx")
+    elif operator_token.code == 33:
+        print("\tmul\tebx")
+    elif operator_token.code == 34:
+        print("\tdiv\tebx")
+    elif operator_token.code == 30:
+        print("\tmov\t[eax], ebx")
+    elif operator_token.code == 1:
+        print("\tmov\teax, [%s]" % operator_token)
+    else:
+        print("\tmov\teax, %s" % operator_token)
+
+def translate_code_segment(final_prefix_forms):
+    print("section .text")
+    print("\tglobal _start")
+    print("_start:")
+    print("\tpush ebp")
+    print("\tmov ebp, esp")
+    for prefix_form in final_prefix_forms:
+        stack = []
+        stored = []
+        for i in range(len(prefix_form)):
+            if is_operator(prefix_form[i]):
+                if is_operator(prefix_form[i + 1]) or is_operator(prefix_form[i + 2]):
+                    if not is_operator(prefix_form[i + 1]):
+                        stack_counter=1
+                    else:
+                        stack_counter=2
+                    stored.append(stack_counter)
+                    stack.append(prefix_form[i])
+        prefix_form.reverse()
+        for i in range(len(prefix_form)):
+            if is_operator(prefix_form[i]):
+                if not is_operator(prefix_form[i - 1]) and not is_operator(prefix_form[i - 2]):
+                    for j in range(1, 3):
+                        calc_print(prefix_form[i - j])
+                    calc_print(prefix_form[i])
+                else:
+                    in_stack = stored.pop()
+                    if in_stack == 2:
+                        print("\tpop\teax")
+                    else:
+                        for j in range(1, 3):
+                            if not is_operator(prefix_form[i - j]):
+                                calc_print(prefix_form[i - j])
+                    print("\tpop\tebx")
+                    calc_print(stack.pop())
+                if stack:
+                    print("\tpush\teax")
+    print("\tmov\teax, 0")
+    print("\tpop\tebp")
+    print("\tret")
+
+
 class Reader:
     def flag_reading(self, filename, before, after):
         f = open(filename, "r")
@@ -25,26 +91,6 @@ class Reader:
 
     def text_segment(self, filename):               #чтение основного текста программы
         return self.flag_reading(filename, 4, 5)
-
-def to_dict(self, obj, classkey=None):                  #переводит объект в словарь
-    if isinstance(obj, dict):
-        data = {}
-        for (k, v) in obj.items():
-            data[k] = self.to_dict(v, classkey)
-        return data
-    elif hasattr(obj, "_ast"):
-        return self.to_dict(obj._ast())
-    elif hasattr(obj, "__iter__") and not isinstance(obj, str):
-        return [self.to_dict(v, classkey) for v in obj]
-    elif hasattr(obj, "__dict__"):
-        data = dict([(key, self.to_dict(value, classkey))
-            for key, value in obj.__dict__.items()
-            if not callable(value) and not key.startswith('_')])
-        if classkey is not None and hasattr(obj, "__class__"):
-            data[classkey] = obj.__class__.__name__
-        return data
-    else:
-        return obj
 
 def min_order(tokens_array):
     minimal_order = tokens_array[0].order
@@ -157,7 +203,6 @@ def min_ordered_token(tokens_array):
             ret = token
     return ret
 
-
 def collect_tokens_by_bracket(tokens_array):
 
     Identifier = tokens_array.pop(0)
@@ -223,6 +268,7 @@ def prefixation(text):
         for lexem in array:
             tokenized_text[-1].append(Token(lexem))
 
+    final_prefix_forms = []
     for array in tokenized_text:
         array.pop()
 
@@ -239,7 +285,8 @@ def prefixation(text):
             for token in prefix_form:
                 final_prefix_form.append(token)
                 i+=1
-        print(final_prefix_form)
+        final_prefix_forms.append(final_prefix_form)
+    return final_prefix_forms
 
 
 def main():
@@ -255,7 +302,6 @@ def main():
     program_reader = Reader()
     data = program_reader.data_segment("output.out")
     buf = program_reader.text_segment("output.out")
-
     text = [[]]
     i = 0
     for arr in buf:             #предварительная обработка считанных лексем для токенизации
@@ -264,7 +310,11 @@ def main():
             text.append([])
             i+=1
     text.remove([])
-    prefixation(text)
+    final_prefix_forms = prefixation(text)
+    
+    translate_data_segment(data)
+    translate_code_segment(final_prefix_forms)
+
     return 0
 
 if __name__ == "__main__":
