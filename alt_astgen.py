@@ -36,7 +36,7 @@ def translate_code_segment(final_prefix_forms):
         for i in range(len(prefix_form)):
             if is_operator(prefix_form[i]):
                 if is_operator(prefix_form[i + 1]) or is_operator(prefix_form[i + 2]):
-                    if not is_operator(prefix_form[i + 1]):
+                    if not is_operator(prefix_form[i + 1]):   #думаю, вот это можно сделать куда более элегантно и лаконично
                         stack_counter=1
                     else:
                         stack_counter=2
