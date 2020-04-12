@@ -175,6 +175,12 @@ def brackets_ordering(tokens_array):
         if is_bracket(token):
             token = bracket_array.pop(0)
 
+        if 1 <= token.code <= 2:            #удаляем скобки если в них заключена константа или переменная
+            i = tokens_array.index(token)
+            if is_bracket(tokens_array[i - 1]) and is_bracket(tokens_array[i + 1]):
+                tokens_array.pop(tokens_array.index(token) - 1)
+                tokens_array.pop(tokens_array.index(token) + 1)
+
 def tokens_ordering_by_brackets(tokens_array):
     bracket = 0
     for token in tokens_array:
@@ -204,7 +210,6 @@ def min_ordered_token(tokens_array):
     return ret
 
 def collect_tokens_by_bracket(tokens_array):
-
     Identifier = tokens_array.pop(0)
     VariableDeclarator = tokens_array.pop(0)
 
@@ -233,6 +238,7 @@ def collect_tokens_by_order(tokens_array):
         for token in tokens_array:
             if token.order == i and not is_bracket(token):
                 tokens_in_order_array[-1].append(token)
+
     for simple_expression in tokens_in_order_array:
         prefix_form_of_simple_expression(simple_expression)
 
