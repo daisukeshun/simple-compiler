@@ -2,9 +2,9 @@ from checker import *
 
 def translate_data_segment(data_segment):
     print("section .data")
-    for var_name in data_segment:
-        if int(var_name[1]) == 1:
-            print("\t%s:\tdd 0x00" % var_name[0])
+    for var in data_segment:
+        if var.code == 1:
+            print("\t%s:\tdd 0x00" % var)
 
     print("section .bss")
 
@@ -28,27 +28,30 @@ def translate_code_segment(final_prefix_forms):
     print("section .text")
     print("\tglobal _start")
     print("_start:")
-    print("\tpush ebp")
-    print("\tmov ebp, esp")
+    print("\tpush\tebp")
+    print("\tmov\tebp, esp")
     for prefix_form in final_prefix_forms:
         stack = []
         stored = []
         for i in range(len(prefix_form)):
             if is_operator(prefix_form[i]):
                 if is_operator(prefix_form[i + 1]) or is_operator(prefix_form[i + 2]):
-                    if not is_operator(prefix_form[i + 1]):   #думаю, вот это можно сделать куда более элегантно и лаконично
+                    if not is_operator(prefix_form[i + 1]):   #думаю, вот это можно сделать куда более лаконично
                         stack_counter=1
                     else:
                         stack_counter=2
                     stored.append(stack_counter)
                     stack.append(prefix_form[i])
+
         prefix_form.reverse()
         for i in range(len(prefix_form)):
             if is_operator(prefix_form[i]):
                 if not is_operator(prefix_form[i - 1]) and not is_operator(prefix_form[i - 2]):
+                    '''
                     for j in range(1, 3):
                         calc_print(prefix_form[i - j])
                     calc_print(prefix_form[i])
+                    '''
                 else:
                     in_stack = stored.pop()
                     if in_stack == 2:
@@ -56,41 +59,23 @@ def translate_code_segment(final_prefix_forms):
                     else:
                         for j in range(1, 3):
                             if not is_operator(prefix_form[i - j]):
+                                print(prefix_form[i - j])
+                                '''
                                 calc_print(prefix_form[i - j])
+                                '''
+                            elif prefix_form[i - j].code == 37:
+                                print(prefix_form[i - j])
+
                     print("\tpop\tebx")
+                    '''
                     calc_print(stack.pop())
+                    '''
                 if stack:
                     print("\tpush\teax")
     print("\tmov\teax, 0")
     print("\tpop\tebp")
     print("\tret")
 
-
-class Reader:
-    def flag_reading(self, filename, before, after):
-        f = open(filename, "r")
-        array = []
-        flag = False
-        for line in f.readlines():
-            if len(line.split()) and line.split()[0][0] != '::':
-                if len(line.split()) > 1:
-                    code = int(line.split()[1])
-                else:
-                    continue
-                if code == before:
-                    flag = True
-                elif code == after:
-                    flag = False
-                if flag and  before != code != after:
-                    array.append(line.split())
-        f.close()
-        return array
-
-    def data_segment(self, filename):               #чтение объявления переменных
-        return self.flag_reading(filename, 3, 4)
-
-    def text_segment(self, filename):               #чтение основного текста программы
-        return self.flag_reading(filename, 4, 5)
 
 def min_order(tokens_array):
     minimal_order = tokens_array[0].order
@@ -167,9 +152,12 @@ def brackets_ordering(tokens_array):
     for i in range(1, len(layer_array)):
         if (layer_array[i - 1] > layer_array[i] and 
             shift_array[i - 1] <= shift_array[i]):
-            shift_array[i] = unclosed_shift_brackets.pop(0)
+            shift_array[i] = unclosed_shift_brackets.pop()
         bracket_array[i - 1].order = shift_array[i - 1]
         bracket_array[i].order = shift_array[i]
+
+    #print(layer_array)
+    #print(shift_array)
 
     for token in tokens_array:
         if is_bracket(token):
@@ -211,7 +199,9 @@ def min_ordered_token(tokens_array):
 
 def collect_tokens_by_bracket(tokens_array):
     Identifier = tokens_array.pop(0)
+    Semicolon = tokens_array.pop(0)
     VariableDeclarator = tokens_array.pop(0)
+    VariableDeclarator.value = Semicolon.value + VariableDeclarator.value
 
     max_br = max_bracket(tokens_array)
     tokens_in_brackets_array = []
@@ -230,8 +220,28 @@ def collect_tokens_by_bracket(tokens_array):
                 array.pop()
     return [Identifier, VariableDeclarator]
 
-def collect_tokens_by_order(tokens_array):
+def unary_minus_processing(tokens_array):
+    before_bracket = []
+    minus = 0
+    for token in tokens_array:
+        i = tokens_array.index(token)
+        if token.code == 37:
+            minus = 1
+        elif token.code in [1, 2]:
+            if minus:
+                token.value = '-' + token.value;
+                minus = 0
+                tokens_array.pop(i - 1)
+        elif token.code == 35:
+            if minus:
+                before_bracket.append(i)
+                minus = 0
+    while before_bracket:
+        i = before_bracket.pop()
+        tokens_array[i - 1].order = 0
 
+
+def collect_tokens_by_order(tokens_array):
     tokens_in_order_array = []
     for i in range(max_order(tokens_array) + 1):
         tokens_in_order_array.append([])
@@ -250,12 +260,23 @@ def find_operator(tokens_array):
             return token
     return None
 
+def find_minus(tokens_array):
+    for token in tokens_array:
+        if token.code == 37:
+            return token
+    return None
+
+
 def prefix_form_of_simple_expression(simple_expression):
     op = find_operator(simple_expression)
+    minus = find_minus(simple_expression)
     if simple_expression:
-        if simple_expression.index(op) and op:
+        if op:
             simple_expression.remove(op)
             simple_expression.insert(0, op)
+        if minus:
+            simple_expression.remove(minus)
+            simple_expression.append(minus)
 
 def tokens_ordering_by_operators(tokens_array):
     for i in range(max_order(tokens_array) + 1):
@@ -264,7 +285,6 @@ def tokens_ordering_by_operators(tokens_array):
                 index = tokens_array.index(token)
                 tokens_array[index - 1].order = tokens_array[index + 1].order = i
 
-
 def prefixation(text):
     prefix_form = []
 
@@ -272,13 +292,13 @@ def prefixation(text):
     for array in text:
         tokenized_text.append([])
         for lexem in array:
-            tokenized_text[-1].append(Token(lexem))
+            tokenized_text[-1].append(lexem)
 
     final_prefix_forms = []
     for array in tokenized_text:
         array.pop()
 
-        unary_minus_detection(array)
+        unary_minus_processing(array)
         brackets_ordering(array)
         tokens_ordering_by_brackets(array)
         expression_id_init = collect_tokens_by_bracket(array)
@@ -287,35 +307,50 @@ def prefixation(text):
 
         i = 0
         final_prefix_form = [expression_id_init[1], expression_id_init[0]]
+
         for prefix_form in prefix_array_tokens_form:
-            for token in prefix_form:
-                final_prefix_form.append(token)
-                i+=1
+            if prefix_array_tokens_form.index(prefix_form):
+                for minus in prefix_array_tokens_form[0]:
+                    if prefix_form[0].bracket == minus.bracket + 1:
+                        prefix_form.insert(0,minus)
+                        prefix_array_tokens_form[0].remove(minus)
+                for token in prefix_form:
+                    final_prefix_form.append(token)
+                    i+=1
         final_prefix_forms.append(final_prefix_form)
+        postfix_form = final_prefix_form.copy()
+        print(final_prefix_form)
+        postfix_form.reverse()
     return final_prefix_forms
 
 def main():
     #global check
     program_checker = Checker("output.out")
     program_checker.var_begin_end()
-    program_checker.identifiers_and_literals()
-    program_checker.operators()
-    program_checker.brackets()
-    program_checker.equals()
-    program_checker.invalid()
     #global check end
 
     if not program_checker.result:
         return 0
 
-    program_reader = Reader()
-    data = program_reader.data_segment("output.out")
-    buf = program_reader.text_segment("output.out")
+    data = []
+    buf = []
+    in_section = 0
+    for token in program_checker.tokens:
+        if token.code == 3 or token.code == 4:
+            in_section = token.code
+
+        if in_section == 3:
+            if token.code == 1 and token.code != 4:
+                data.append(token)
+        elif in_section == 4:
+            if token.code != 5 and token.code != 4:
+                buf.append(token)
+
     text = [[]]
     i = 0
     for arr in buf:             #предварительная обработка считанных лексем для токенизации
         text[i].append(arr)
-        if int(arr[1]) == 10:
+        if arr.code == 10:
             text.append([])
             i+=1
     text.remove([])

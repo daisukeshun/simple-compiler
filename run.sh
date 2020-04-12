@@ -1,6 +1,6 @@
 #!/bin/bash
 clear
-cc -o lexer lexer.c
+cc lexer.c -o lexer
 ./lexer p.lang
 
 python3 alt_astgen.py

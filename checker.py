@@ -15,22 +15,6 @@ class Token:                            #содержит в себе предс
     def __str__(self):
         return self.value
 
-def unary_minus_detection(text):
-    for i in range(1, len(text)):               #унарный минус может стоять только перед открывающей скобкой, 
-        if text[i].code == 32:                  #числом и переменной, при этом перед минусом должен быть оператор или открывающая скобка
-            if ((text[i + 1].code == 1 or
-                text[i + 1].code == 2 or
-                text[i + 1].code == 35 or
-                text[i - 1].code == 35) and
-                (text[i - 1].code == 35 or
-                is_operator(text[i - 1]))):
-                text[i].code = 37
-                text[i + 1].value = '-' + text[i + 1].value
-    for i in text:
-        if i.code == 37:
-            text.remove(i)
-
-
 def is_operator(token):
     if 30 <= token.code <= 34:
         return True
@@ -72,61 +56,173 @@ class Checker:
                         continue
         f.close()
 
+    def clear_flags(self, flags):
+        for key in flags:
+            flags[key] = 0
+
     def var_begin_end(self):        #проверка на наличие Var, Begin, End
         flag = {
         "var": 0,
         "begin": 0,
-        "end": 0
+        "end": 0,
+        "variable": 0,
+        "const": 0,
+        "colon": 0,
+        "semicolon": 0,
+        "double_dot": 0,
+        "declarator": 0,
+        "minus": 0,
+        "operator": 0,
+        "open_bracket": 0,
+        "close_bracket": 0,
         }
+
+        in_section = 0
+        var = 0
+        begin = 0
+        end = 0
+
+        error = 0
+
+        bracket_checker = 0
+        last_checked_bracket = None
+
         defined = []                #объявленные переменные
         used = []                   #использованные переменные
         for i in range(len(self.tokens)):
-            if self.tokens[i].code == 3:
-                if flag["var"]:
-                    self.result = False
-                    print("Error: Var is not expected")             #Если и более раз встречается Var, то ошибка
-                    print(self.get_line_by_token_id(i))
-                flag["var"] = 1
-                if self.tokens[i + 1].code != 1:
-                    self.result = False
-                    print("Error: expect identifier after Var")     #Если после Var не идет идентификатор
-                    print(self.get_line_by_token_id(i + 1))
-            elif self.tokens[i].code == 4:
-                if flag["begin"]:
-                    self.result = False
-                    print("Error: Begin is not expected")           #Если два и более раз встречается Begin, то ошибка
-                    print(self.get_line_by_token_id(i))
-                flag["begin"] = 1
-                if self.tokens[i + 1].code != 1:
-                    self.result = False
-                    print("Error: expect identifier after Begin")   #Если после Begin не идет идентификатор
-                    print(self.get_line_by_token_id(i + 1))
-            elif self.tokens[i].code == 5:
-                if flag["end"]:
-                    self.result = False
-                    print("Error: End is not expected")             #Если два и более раз встречается End, то ошибка
-                    print(self.get_line_by_token_id(i))
-                flag["end"] = 1
-                if self.tokens[i - 1].code != 10:
-                    self.result = False
-                    print("Error: expect semicolon before End")     #Если перед End нет ;
-                    print(self.get_line_by_token_id(i - 1))
-            else:
-                if self.tokens[i].code == 1:                        #считывание в массивы объявленных и используемых переменных
-                    if not flag["begin"]:
-                        defined.append([self.tokens[i], i])
-                    elif flag["begin"]:
-                        used.append([self.tokens[i], i])
+            code = self.tokens[i].code
 
-        if not flag["var"]:                                         #проверка на наличие ключевых слов
-            self.result = False
-            print("Var is not found")
-        elif not flag["begin"]:
-            self.result = False
-            print("Begin is not found")
-        elif not flag["end"]:
-            self.result = False
+            if code == 1:
+                if in_section == 3:
+                    defined.append([self.tokens[i], i])
+                    if not (flag["var"] + flag["colon"] + flag["semicolon"]):
+                        self.result = False
+                elif in_section == 4:
+                    used.append([self.tokens[i], i])
+                    if not (flag["begin"] + flag["operator"] + flag["minus"] + flag["semicolon"] + flag["open_bracket"] + flag["declarator"]):
+                        self.result = False
+                self.clear_flags(flag)
+                flag["variable"] = 1
+
+            elif code == 2:
+                if in_section == 3:
+                    self.result = False
+                elif in_section == 4:
+                    if not (flag["declarator"] + flag["operator"] + flag["minus"] + flag["open_bracket"]):
+                        self.result = False
+                self.clear_flags(flag)
+                flag["const"] = 1
+
+            elif code == 10:
+                if in_section == 3:
+                    if not flag["variable"]:
+                        self.result = False
+                elif in_section == 4:
+                    if not (flag["variable"] + flag["const"] + flag["close_bracket"]):
+                        self.result = False
+                self.clear_flags(flag)
+                flag["semicolon"] = 1
+
+            elif code == 11:
+                if in_section != 3:
+                    self.result = False
+                else:
+                    if not (flag["variable"]):
+                        self.result = False
+                self.clear_flags(flag)
+                flag["colon"] = 1
+
+            elif code == 20:
+                self.clear_flags(flag)
+                flag["invalid"] = 1
+                self.result = False
+
+            elif code in [31, 33, 34]:
+                if flag["close_bracket"] + flag["const"] + flag["variable"]:
+                    self.clear_flags(flag)
+                    flag["operator"] = 1
+
+            elif code == 32:
+                if flag["declarator"] + flag["open_bracket"]:
+                    self.clear_flags(flag)
+                    flag["minus"] = 1
+                    self.tokens[i].code = 37
+                    self.tokens[i].order = 0
+                elif flag["close_bracket"] + flag["const"] + flag["variable"]:
+                    self.clear_flags(flag)
+                    flag["operator"] = 1
+                else:
+                    self.result = False
+
+            elif code == 35:
+                bracket_checker += 1
+                last_checked_bracket = i
+                if not (flag["operator"] + flag["open_bracket"] + flag["declarator"] + flag["minus"]):
+                    self.result = False
+                self.clear_flags(flag)
+                flag["open_bracket"] = 1
+
+            elif code == 36:
+                bracket_checker -= 1
+                last_checked_bracket = i
+                if not (flag["variable"] + flag["const"] + flag["close_bracket"]):
+                    self.result = False
+                self.clear_flags(flag)
+                flag["close_bracket"] = 1
+
+            elif code == 38:
+                if not (flag["variable"]):
+                    self.result = False
+                self.clear_flags(flag)
+                flag["double_dot"] = 1
+
+            elif code == 30:
+                if flag["double_dot"]:
+                    self.clear_flags(flag)
+                    flag["declarator"] = 1
+
+            elif code == 3:
+                var = 1
+                if in_section == 3:
+                    self.result = False
+                in_section = 3
+                self.clear_flags(flag)
+                flag["var"] = 1
+
+            elif code == 4:
+                begin = 1
+                if not flag["semicolon"]:
+                    self.result = False
+                if in_section == 4:
+                    self.result = False
+                in_section = 4
+                self.clear_flags(flag)
+                flag["begin"] = 1
+
+            elif code == 5:
+                end = 1
+                if not flag["semicolon"]:
+                    self.result = False
+                if in_section == 5:
+                    self.result = False
+                in_section = 5
+                self.clear_flags(flag)
+                flag["end"] = 1
+
+            if not self.result:
+                error = 1
+                print(self.get_line_by_token_id(i))
+                self.result = True
+
+        if not var:
+            print("Var not found")
+        if not begin:
+            print("Begin not found")
+        if not end:
             print("End not found")
+
+        if error:
+            self.result = False
 
         selected = []                                               #проверка на соответствие объявленных и используемых переменных
         if len(defined) >= len(used):
@@ -147,14 +243,11 @@ class Checker:
                     print("Error: variable is not defined")
                     print(self.get_line_by_token_id(i[1]))
                                                                     #конец проверки объявленных и используемых переменных
+        if bracket_checker:
+            print("Error: bracket not found")
+            print(self.get_line_by_token_id(last_checked_bracket))
 
-    def invalid(self):                          #проверка на правильность имен переменных и операторов
-        result = True
-        for n_line in self.lines:
-            for token in n_line.line:
-                if token[0].code == 20 or token[0].code == 0:
-                    self.result = False
-                    print("Error: invalid identifier\n%s" % (n_line))
+
 
     def get_line_by_token_id(self, token_id):   #вспомогательный метод, который получает строку исходя из индекса Token'a
         for n_line in self.lines:
@@ -163,74 +256,3 @@ class Checker:
                     token_n[0].value = "[]"
                     return n_line
 
-    def operators(self):                        #проверка на правильность использования операторов
-        unary_minus_detection(self.tokens)      #маркировка унарного минуса
-        for i in range(len(self.tokens)):
-            if is_operator(self.tokens[i]):
-                if self.tokens[i - 1].code != 1 and self.tokens[i - 1].code != 2 and self.tokens[i - 1].code != 36:
-                   self.result = False
-                   print("Error: %s not expected\n%s" % (self.tokens[i - 1], self.get_line_by_token_id(i)))
-            if self.tokens[i].code == 37:
-                if self.tokens[i - 1].code != 35:
-                   self.result = False
-                   print("Error: %s not expected\n%s" % (self.tokens[i - 1], self.get_line_by_token_id(i)))
-
-    def identifiers_and_literals(self):
-        section = 0
-        for i in range(len(self.tokens)):
-            if self.tokens[i].code == 3:
-                section = 1
-            if self.tokens[i].code == 4:
-                section = 2
-            if self.tokens[i].code == 1 or self.tokens[i].code == 2:
-                if section == 1:
-                    if self.tokens[i - 1].code != 1 and self.tokens[i - 1].code != 3 and self.tokens[i - 1].code != 10 and self.tokens[i - 1].code != 11:
-                        self.result = False
-                        print("Error: %s not expected\n%s" % (self.tokens[i - 1], self.get_line_by_token_id(i)))
-                elif section == 2:
-                    if self.tokens[i - 1].code != 37 and self.tokens[i - 1].code != 35 and not is_operator(self.tokens[i - 1]) and self.tokens[i + 1].code != 30:
-                        self.result = False
-                        print("Error: %s not expected\n%s" % (self.tokens[i - 1], self.get_line_by_token_id(i)))
-
-    def brackets(self):                     #проверка правильного использования скобок
-        checker = 0                         #маркер замкнутости скобок
-        last_bracket = 0                    #индекс последней пройденной скобки
-        for i in range(len(self.tokens)):
-            if self.tokens[i].code == 35:   #если открывающая скобка
-                checker+=1
-                if self.tokens[i - 1].code != 35 and self.tokens[i - 1].code != 37 and not is_operator(self.tokens[i - 1]):
-                    self.result = False
-                    print("Error: %s not expected\n%s" % (self.tokens[i - 1], self.get_line_by_token_id(i + 1)))
-                    last_bracket = i
-            elif self.tokens[i].code == 36: #если закрывающая скобка
-                checker-=1
-                if self.tokens[i - 1].code != 1 and self.tokens[i - 1].code != 2  and self.tokens[i - 1].code != 36:
-                    self.result = False
-                    print("Error: %s not expected\n%s" % (self.tokens[i - 1], self.get_line_by_token_id(i + 1)))
-                    last_bracket = i
-        if checker:                         #если скобки не замкнуты
-            self.result = False
-            if checker > 0:
-                print("Error: close bracket not found\n%s" % (self.get_line_by_token_id(last_bracket)))
-            else:
-                print("Error: open bracket not found\n%s" % (self.get_line_by_token_id(last_bracket)))
-
-    def equals(self):                   #проверка на несколько = в одном выражении
-        checker = 0
-        invalid_declarations = []
-        in_exp = 0
-        for i in range(len(self.tokens)):
-            if self.tokens[i].code == 30:
-                in_exp = 1
-                checker+=1
-                if checker > 1:
-                    invalid_declarations.append(i)
-            elif self.tokens[i].code == 10 and in_exp:
-                in_exp = 0
-                checker-=1
-
-        if checker > 0:
-            self.result = False
-            for declarator in invalid_declarations:
-                print("Error: equal is not expected")
-                print(self.get_line_by_token_id(declarator))
