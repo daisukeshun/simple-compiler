@@ -8,7 +8,7 @@ def translate_data_segment(data_segment):
 
     print("section .bss")
 
-def calc_print(operator_token):
+def calc_print(operator_token, register = "eax"):
     if operator_token.code == 31:
         print("\tadd\teax, ebx")
     elif operator_token.code == 32:
@@ -22,7 +22,11 @@ def calc_print(operator_token):
     elif operator_token.code == 1:
         print("\tmov\teax, [%s]" % operator_token)
     else:
-        print("\tmov\teax, %s" % operator_token)
+        print("\tmov\t%s, %s" % (register, operator_token))
+
+def clear_flags(flags):
+    for key in flags:
+        flags[key] = 0
 
 def translate_code_segment(final_prefix_forms):
     print("section .text")
@@ -33,45 +37,50 @@ def translate_code_segment(final_prefix_forms):
     for prefix_form in final_prefix_forms:
         stack = []
         stored = []
-        for i in range(len(prefix_form)):
-            if is_operator(prefix_form[i]):
-                if is_operator(prefix_form[i + 1]) or is_operator(prefix_form[i + 2]):
-                    if not is_operator(prefix_form[i + 1]):   #думаю, вот это можно сделать куда более лаконично
+
+        eax = 0
+
+        prefix_form_without_minus = list(filter((lambda x: x.code != 37), prefix_form))
+        for i in range(len(prefix_form_without_minus)):
+            if is_operator(prefix_form_without_minus[i]):
+                if is_operator(prefix_form_without_minus[i + 1]) or is_operator(prefix_form_without_minus[i + 2]):
+                    if not is_operator(prefix_form_without_minus[i + 1]):   #думаю, вот это можно сделать куда более лаконично
                         stack_counter=1
                     else:
                         stack_counter=2
                     stored.append(stack_counter)
-                    stack.append(prefix_form[i])
-
-        prefix_form.reverse()
-        for i in range(len(prefix_form)):
-            if is_operator(prefix_form[i]):
-                if not is_operator(prefix_form[i - 1]) and not is_operator(prefix_form[i - 2]):
-                    '''
-                    for j in range(1, 3):
-                        calc_print(prefix_form[i - j])
-                    calc_print(prefix_form[i])
-                    '''
                 else:
-                    in_stack = stored.pop()
-                    if in_stack == 2:
-                        print("\tpop\teax")
-                    else:
-                        for j in range(1, 3):
-                            if not is_operator(prefix_form[i - j]):
-                                print(prefix_form[i - j])
-                                '''
-                                calc_print(prefix_form[i - j])
-                                '''
-                            elif prefix_form[i - j].code == 37:
-                                print(prefix_form[i - j])
+                    stack_counter = 0
+                    stored.append(stack_counter)
+        prefix_form.reverse()
 
+        for token in prefix_form:
+            in_stack = 0
+            if is_operator(token):
+                in_stack = stored.pop()
+                if in_stack == 2:
+                    print("\tpop\teax")
                     print("\tpop\tebx")
-                    '''
-                    calc_print(stack.pop())
-                    '''
-                if stack:
+                elif in_stack == 1:
+                    print("\tpop\tebx")
+                calc_print(token)
+                if token.code != 30:
                     print("\tpush\teax")
+            elif not is_operator(token) and token.code != 37:
+                if eax:
+                    calc_print(token, "ebx")
+                    eax = 0
+                elif not eax:
+                    calc_print(token, "eax")
+                    eax = 1
+
+            elif token.code == 37:
+                print("\tpop\tebx")
+                print("\tneg\tebx")
+                print("\tpush\tebx")
+
+
+
     print("\tmov\teax, 0")
     print("\tpop\tebp")
     print("\tret")
