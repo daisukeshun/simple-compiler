@@ -333,29 +333,37 @@ def prefixation(text):                  #основная функция для 
     for array in tokenized_text:
         array.pop()
 
-        unary_minus_processing(array)                   #обрабатываем унарные минусы
-        brackets_ordering(array)                        #нумеруем порядок скобок
-        tokens_ordering_by_brackets(array)              #нумеруем токены в соответствии со скобками
-        expression_id_init = collect_tokens_by_bracket(array)    #собираем в массивы токены в скобках
-        ordered_by_ops = tokens_ordering_by_operators(array)     #нумеруем операторы в соответствии с порядком и скобками
-        prefix_array_tokens_form = collect_tokens_by_order(array)#собираем токены в массивы простых выражений
+        unary_minus_processing(array)                                       #обрабатываем унарные минусы
+        brackets_ordering(array)                                            #нумеруем порядок скобок
+        tokens_ordering_by_brackets(array)                                  #нумеруем токены в соответствии со скобками
+        expression_id_init = collect_tokens_by_bracket(array)               #собираем в массивы токены в скобках
+        ordered_by_ops = tokens_ordering_by_operators(array)                #нумеруем операторы в соответствии с порядком и скобками
+        prefix_array_tokens_form = collect_tokens_by_order(ordered_by_ops)  #собираем токены в массивы простых выражений
 
-        i = 0
         final_prefix_form = [expression_id_init[1], expression_id_init[0]]  #добавляем в префиксную форму объявление переменной
 
+        i = 0
+        minus_found = 0
         for prefix_form in prefix_array_tokens_form:            #все унарные минусы, которые присутствуют 
-            if prefix_array_tokens_form.index(prefix_form):     #в префиксных формах из простых выражений являются минусами
+            if find_minus(prefix_array_tokens_form[0]):         #в префиксных формах из простых выражений являются минусами
+                minus_found = True
                 for minus in prefix_array_tokens_form[0]:       #перед скобками
                     if prefix_form[0].bracket == minus.bracket + 1: #в таких унарных минусах содержится номер скобки, перед которой они стоят
                         prefix_form.insert(0,minus)                 #вставляем перед простой префиксной формой минус
                         prefix_array_tokens_form[0].remove(minus)   #удаляем используемый минус
+
+            if not minus_found:
                 for token in prefix_form:
                     final_prefix_form.append(token)                 #добавляем токены в финальную префиксную форму
-                    i+=1
+            else:
+                if prefix_array_tokens_form.index(prefix_form):
+                    for token in prefix_form:
+                        final_prefix_form.append(token)                 #добавляем токены в финальную префиксную форму
+
         final_prefix_forms.append(final_prefix_form)                #в список префиксных форм добавляем обработанный результат
         postfix_form = final_prefix_form.copy()
-        print(final_prefix_form)                                    
         postfix_form.reverse()                                      #постфиксная форма выражения
+        print(postfix_form)
     return final_prefix_forms
 
 def main():
