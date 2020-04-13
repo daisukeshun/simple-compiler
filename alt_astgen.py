@@ -289,11 +289,36 @@ def prefix_form_of_simple_expression(simple_expression):    #создаем пр
             simple_expression.append(minus)
 
 def tokens_ordering_by_operators(tokens_array):         #нумерация констант и переменных в соответствии с оператором
+    max_order_in_bracket = 0
+    max_orders = []
+    for token in tokens_array:
+        i = tokens_array.index(token)
+        if token.code == 34 and is_bracket(tokens_array[i - 1]):
+            br = tokens_array[i - 1].bracket
+            in_bracket = 0
+            for j in tokens_array:
+                if j.bracket == br:
+                    if j.code == 35:
+                        in_bracket = 1
+                    elif j.code == 36:
+                        in_bracket = 0
+                if in_bracket and is_operator(j):
+                    max_order_in_bracket = max(max_order_in_bracket, j.order)
+            max_orders.append(max_order_in_bracket)
+
     for i in range(max_order(tokens_array) + 1):
         for token in tokens_array:
             if token.order == i and is_operator(token):
                 index = tokens_array.index(token)
-                tokens_array[index - 1].order = tokens_array[index + 1].order = i
+                if not is_bracket(tokens_array[index - 1]):
+                    tokens_array[index - 1].order = i
+                if not is_bracket(tokens_array[index + 1]):
+                    tokens_array[index + 1].order = i
+                if token.code == 34 and is_bracket(tokens_array[index - 1]):
+                    tokens_array[index + 1].order = max_orders.pop(0)
+
+    buf = list(filter((lambda x: not is_bracket(x)), tokens_array))
+    return buf
 
 def prefixation(text):                  #основная функция для построения префиксной/постфиксной формы
     prefix_form = []
@@ -312,7 +337,7 @@ def prefixation(text):                  #основная функция для 
         brackets_ordering(array)                        #нумеруем порядок скобок
         tokens_ordering_by_brackets(array)              #нумеруем токены в соответствии со скобками
         expression_id_init = collect_tokens_by_bracket(array)    #собираем в массивы токены в скобках
-        tokens_ordering_by_operators(array)                      #нумеруем операторы в соответствии с порядком и скобками
+        ordered_by_ops = tokens_ordering_by_operators(array)     #нумеруем операторы в соответствии с порядком и скобками
         prefix_array_tokens_form = collect_tokens_by_order(array)#собираем токены в массивы простых выражений
 
         i = 0
