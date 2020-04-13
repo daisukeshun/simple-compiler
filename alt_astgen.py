@@ -23,11 +23,7 @@ def calc_print(operator_token, register = "eax"):
         print("\tmov\teax, [%s]" % operator_token)
     else:
         print("\tmov\t%s, %s" % (register, operator_token))
-
-def clear_flags(flags):
-    for key in flags:
-        flags[key] = 0
-
+        
 def translate_code_segment(final_prefix_forms):
     print("section .text")
     print("\tglobal _start")
@@ -85,7 +81,7 @@ def translate_code_segment(final_prefix_forms):
     print("\tpop\tebp")
     print("\tret")
 
-
+#вспомогательные функции
 def min_order(tokens_array):
     minimal_order = tokens_array[0].order
     for i in tokens_array:
@@ -136,58 +132,6 @@ def select_max_ordered_tokens(tokens_array):
             max_ordered_tokens.append(token)
     return max_ordered_tokens
 
-def is_bracket(token):
-    if 35 <= token.code <= 36:
-        return True
-    return False
-
-def brackets_ordering(tokens_array):
-    bracket_array = list(filter((lambda x: is_bracket(x)), tokens_array))
-    c1 = 1 
-    c2 = 0
-    layer_array = []
-    shift_array = []
-    for bracket in bracket_array:
-        if bracket.code == 35:
-            layer_array.append(c1)
-            c1 += 1
-            c2 += 1
-        else:
-            c1 -= 1
-            layer_array.append(c1)
-        shift_array.append(c2)
-
-    unclosed_shift_brackets = list(filter((lambda x: shift_array.count(x) == 1), shift_array))
-    for i in range(1, len(layer_array)):
-        if (layer_array[i - 1] > layer_array[i] and 
-            shift_array[i - 1] <= shift_array[i]):
-            shift_array[i] = unclosed_shift_brackets.pop()
-        bracket_array[i - 1].order = shift_array[i - 1]
-        bracket_array[i].order = shift_array[i]
-
-    #print(layer_array)
-    #print(shift_array)
-
-    for token in tokens_array:
-        if is_bracket(token):
-            token = bracket_array.pop(0)
-
-        if 1 <= token.code <= 2:            #удаляем скобки если в них заключена константа или переменная
-            i = tokens_array.index(token)
-            if is_bracket(tokens_array[i - 1]) and is_bracket(tokens_array[i + 1]):
-                tokens_array.pop(tokens_array.index(token) - 1)
-                tokens_array.pop(tokens_array.index(token) + 1)
-
-def tokens_ordering_by_brackets(tokens_array):
-    bracket = 0
-    for token in tokens_array:
-        token.bracket = bracket
-        if is_bracket(token):
-            bracket = token.order
-            token.bracket = bracket
-            if token.code == 36:
-                bracket -= 1
-
 def min_ordered_operator(tokens_array):
     m = 6
     ret = None
@@ -206,17 +150,87 @@ def min_ordered_token(tokens_array):
             ret = token
     return ret
 
+def is_bracket(token):
+    if 35 <= token.code <= 36:
+        return True
+    return False
+
+
+def find_operator(tokens_array):
+    for token in tokens_array:
+        if is_operator(token):
+            return token
+    return None
+
+def find_minus(tokens_array):
+    for token in tokens_array:
+        if token.code == 37:
+            return token
+    return None
+#Конец вспомогательных функций
+
+
+def brackets_ordering(tokens_array):
+    bracket_array = list(filter((lambda x: is_bracket(x)), tokens_array))   #выбираем все скобки в один массив
+    c1 = 1 
+    c2 = 0
+    layer_array = []                #массив для показания вложенности скобок
+    shift_array = []                #массив для показания накопленности открывающих скобок
+    for bracket in bracket_array:   #составление массивов вложенности и накапливающиего открывающие скобки
+        if bracket.code == 35:
+            layer_array.append(c1)
+            c1 += 1
+            c2 += 1
+        else:
+            c1 -= 1
+            layer_array.append(c1)
+        shift_array.append(c2)
+
+    unclosed_shift_brackets = list(filter((lambda x: shift_array.count(x) == 1), shift_array)) #массив для открывающих скобок, индекс которых в накапливающем массиве встречается 1 раз
+    
+    for i in range(1, len(layer_array)):                    #формируем номера для скобок
+        if (layer_array[i - 1] > layer_array[i] and         #выбираем номер для закрывающей скобки,
+            shift_array[i - 1] <= shift_array[i]):          #которая является парой для открывающей скобки в unclosed_shift_brackets
+            shift_array[i] = unclosed_shift_brackets.pop()
+        bracket_array[i - 1].order = shift_array[i - 1]
+        bracket_array[i].order = shift_array[i]
+
+    #print(layer_array)
+    #print(shift_array)
+
+    for token in tokens_array:              #замещаем скобки в исходном выражении на пронумерованные
+        if is_bracket(token):
+            token = bracket_array.pop(0)
+
+        if 1 <= token.code <= 2:            #удаляем скобки если в них заключена константа или переменная
+            i = tokens_array.index(token)
+            if is_bracket(tokens_array[i - 1]) and is_bracket(tokens_array[i + 1]):
+                tokens_array.pop(tokens_array.index(token) - 1)
+                tokens_array.pop(tokens_array.index(token) + 1)
+
+def tokens_ordering_by_brackets(tokens_array):
+    bracket = 0
+    for token in tokens_array:
+        token.bracket = bracket
+        if is_bracket(token):
+            bracket = token.order   #в токене скобки номер скобки содержится в свойстве order
+            token.bracket = bracket
+            if token.code == 36:
+                bracket -= 1
+
 def collect_tokens_by_bracket(tokens_array):
-    Identifier = tokens_array.pop(0)
-    Semicolon = tokens_array.pop(0)
-    VariableDeclarator = tokens_array.pop(0)
+    Identifier = tokens_array.pop(0)            #удаляем
+    Semicolon = tokens_array.pop(0)             #объявление
+    VariableDeclarator = tokens_array.pop(0)    #переменной
     VariableDeclarator.value = Semicolon.value + VariableDeclarator.value
 
+    #объединяем все токены в одной скобке в массив
     max_br = max_bracket(tokens_array)
     tokens_in_brackets_array = []
     for i in range(max_br + 1):
-        tokens_in_brackets_array.append(list(filter((lambda x: x.bracket == i and not is_bracket(x)), tokens_array)))
+        tokens_in_brackets_array.append(list(filter((lambda x: x.bracket == i and not is_bracket(x)), tokens_array))) 
     
+    #нумеруем подряд все операторы, исходя из номера скобок
     op_order_in_brackets = 1
     for array in tokens_in_brackets_array:
         while array:
@@ -227,11 +241,12 @@ def collect_tokens_by_bracket(tokens_array):
                 op_order_in_brackets+=1
             else:
                 array.pop()
+                
     return [Identifier, VariableDeclarator]
 
-def unary_minus_processing(tokens_array):
-    before_bracket = []
-    minus = 0
+def unary_minus_processing(tokens_array):   #обрабатываем унарные минусы так
+    before_bracket = []                     #что все унарные минусы перед переменными или константами объединяем
+    minus = 0                               #в итоге остаются только унарные минусы перед скобками
     for token in tokens_array:
         i = tokens_array.index(token)
         if token.code == 37:
@@ -249,8 +264,7 @@ def unary_minus_processing(tokens_array):
         i = before_bracket.pop()
         tokens_array[i - 1].order = 0
 
-
-def collect_tokens_by_order(tokens_array):
+def collect_tokens_by_order(tokens_array):              #собирает в массивы все токены с одним order'ом
     tokens_in_order_array = []
     for i in range(max_order(tokens_array) + 1):
         tokens_in_order_array.append([])
@@ -258,25 +272,12 @@ def collect_tokens_by_order(tokens_array):
             if token.order == i and not is_bracket(token):
                 tokens_in_order_array[-1].append(token)
 
-    for simple_expression in tokens_in_order_array:
+    for simple_expression in tokens_in_order_array:         #построение префиксной формы для каждого простого выражения
         prefix_form_of_simple_expression(simple_expression)
 
     return tokens_in_order_array
 
-def find_operator(tokens_array):
-    for token in tokens_array:
-        if is_operator(token):
-            return token
-    return None
-
-def find_minus(tokens_array):
-    for token in tokens_array:
-        if token.code == 37:
-            return token
-    return None
-
-
-def prefix_form_of_simple_expression(simple_expression):
+def prefix_form_of_simple_expression(simple_expression):    #создаем префиксную форму простого выражения
     op = find_operator(simple_expression)
     minus = find_minus(simple_expression)
     if simple_expression:
@@ -287,67 +288,66 @@ def prefix_form_of_simple_expression(simple_expression):
             simple_expression.remove(minus)
             simple_expression.append(minus)
 
-def tokens_ordering_by_operators(tokens_array):
+def tokens_ordering_by_operators(tokens_array):         #нумерация констант и переменных в соответствии с оператором
     for i in range(max_order(tokens_array) + 1):
         for token in tokens_array:
             if token.order == i and is_operator(token):
                 index = tokens_array.index(token)
                 tokens_array[index - 1].order = tokens_array[index + 1].order = i
 
-def prefixation(text):
+def prefixation(text):                  #основная функция для построения префиксной/постфиксной формы
     prefix_form = []
 
     tokenized_text = []
-    for array in text:
-        tokenized_text.append([])
+    for array in text:              
+        tokenized_text.append([])   
         for lexem in array:
             tokenized_text[-1].append(lexem)
 
-    final_prefix_forms = []
+    final_prefix_forms = []             #массив для префиксных форм выражений
     for array in tokenized_text:
         array.pop()
 
-        unary_minus_processing(array)
-        brackets_ordering(array)
-        tokens_ordering_by_brackets(array)
-        expression_id_init = collect_tokens_by_bracket(array)
-        tokens_ordering_by_operators(array)
-        prefix_array_tokens_form = collect_tokens_by_order(array)
+        unary_minus_processing(array)                   #обрабатываем унарные минусы
+        brackets_ordering(array)                        #нумеруем порядок скобок
+        tokens_ordering_by_brackets(array)              #нумеруем токены в соответствии со скобками
+        expression_id_init = collect_tokens_by_bracket(array)    #собираем в массивы токены в скобках
+        tokens_ordering_by_operators(array)                      #нумеруем операторы в соответствии с порядком и скобками
+        prefix_array_tokens_form = collect_tokens_by_order(array)#собираем токены в массивы простых выражений
 
         i = 0
-        final_prefix_form = [expression_id_init[1], expression_id_init[0]]
+        final_prefix_form = [expression_id_init[1], expression_id_init[0]]  #добавляем в префиксную форму объявление переменной
 
-        for prefix_form in prefix_array_tokens_form:
-            if prefix_array_tokens_form.index(prefix_form):
-                for minus in prefix_array_tokens_form[0]:
-                    if prefix_form[0].bracket == minus.bracket + 1:
-                        prefix_form.insert(0,minus)
-                        prefix_array_tokens_form[0].remove(minus)
+        for prefix_form in prefix_array_tokens_form:            #все унарные минусы, которые присутствуют 
+            if prefix_array_tokens_form.index(prefix_form):     #в префиксных формах из простых выражений являются минусами
+                for minus in prefix_array_tokens_form[0]:       #перед скобками
+                    if prefix_form[0].bracket == minus.bracket + 1: #в таких унарных минусах содержится номер скобки, перед которой они стоят
+                        prefix_form.insert(0,minus)                 #вставляем перед простой префиксной формой минус
+                        prefix_array_tokens_form[0].remove(minus)   #удаляем используемый минус
                 for token in prefix_form:
-                    final_prefix_form.append(token)
+                    final_prefix_form.append(token)                 #добавляем токены в финальную префиксную форму
                     i+=1
-        final_prefix_forms.append(final_prefix_form)
+        final_prefix_forms.append(final_prefix_form)                #в список префиксных форм добавляем обработанный результат
         postfix_form = final_prefix_form.copy()
-        print(final_prefix_form)
-        postfix_form.reverse()
+        print(final_prefix_form)                                    
+        postfix_form.reverse()                                      #постфиксная форма выражения
     return final_prefix_forms
 
 def main():
-    #global check
+    #проверка программы на синтаксическую правильность
     program_checker = Checker("output.out")
     program_checker.var_begin_end()
-    #global check end
-
-    if not program_checker.result:
+    if not program_checker.result:  #выход из программы в случае если выявлена ошибка при проверке
         return 0
+    
 
-    data = []
-    buf = []
-    in_section = 0
+    data = []           #в массив будут складываться объявленные переменные
+    buf = []            #для всех токенов в основном тексте программы
+    in_section = 0      #маркер для секции
     for token in program_checker.tokens:
         if token.code == 3 or token.code == 4:
-            in_section = token.code
-
+            in_section = token.code             #маркировка секции
+            
         if in_section == 3:
             if token.code == 1 and token.code != 4:
                 data.append(token)
@@ -357,16 +357,16 @@ def main():
 
     text = [[]]
     i = 0
-    for arr in buf:             #предварительная обработка считанных лексем для токенизации
+    for arr in buf:                #разбиение массива из токенов на массивы из выражений
         text[i].append(arr)
         if arr.code == 10:
             text.append([])
             i+=1
-    text.remove([])
-    final_prefix_forms = prefixation(text)
+    text.remove([])                             #удаление пустого массива в конце буфера (несовершеннство алгоритма)
+    final_prefix_forms = prefixation(text)      #строим префиксную форму для массива с выражениями
     
-    translate_data_segment(data)
-    translate_code_segment(final_prefix_forms)
+    translate_data_segment(data)                #перевод в ассемблер объявленных переменных
+    translate_code_segment(final_prefix_forms)  #перевод выражений в префиксной форме
 
     return 0
 
