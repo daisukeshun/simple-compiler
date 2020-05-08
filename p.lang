@@ -4,9 +4,10 @@ d;
 Begin
 GO TO something;
 a := -10 * 20 - (-(1 + 2 * 3 - 5) * (3 + 4));
+GO TO dadada;
 b := 200;
 c := a;
-something;
+something:
 a := 2 + 2 * 2 - 3;
-GO TO mark;
+dadada;
 End

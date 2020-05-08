@@ -33,6 +33,8 @@ def check_marks(marks):
     return True
 
 def main():
+    if error:
+        return 0
     raw_lines = list_of_lexems
     variables = []
     marks = []
