@@ -1,151 +1,60 @@
-#include "small_lib.h"
+#include <stdio.h>
 
-unsigned int check(char * word);
-unsigned long strip(char * str);
-
-unsigned long strip(char * str)
+char get_flag(char c)
 {
-	unsigned long i = 0;
+	char flag = 0;
 
-	char * curtok = strtok(str, " ");
-	while(curtok != NULL)
-	{
-		check(curtok);
-		curtok = strtok(NULL, " ");
-		i++;
-	} 
-	return i;
-}
+	( c >= 40)	? flag = 1: 0;	// (
+	( c >= 42)	? flag = 2: 0;	// * + - /
+	( c == 44 ) ? flag = 7: 0;	//,
+	( c == 46 ) ? flag = 8: 0;	//.
+	( c >= 48 ) ? flag = 3: 0;	// 0 - 9
+	( c == 58 ) ? flag = 5: 0;	// :
+	( c == 59 ) ? flag = 6: 0;	// ;
+	( c >= 60 ) ? flag = 7: 0;	// > = <
+	( c >= 65 ) ? flag = 8: 0;	// A - z
+	( c > 122 ) ? flag = 9: 0;
 
-unsigned int check(char * word)
-{
-	FILE * output = fopen("output.out", "a");
-
-	unsigned int code = 0; 
-	unsigned int i;
-	for(i = 0; i < strlen(word); i++)
-	{
-		if(word[i] >= 'A' && word[i] <= 'z')
-		{
-			if(code == 2){
-				code = 20;
-				break;
-			}
-			code = 1;
-			fprintf(output, "%c", word[i]);
-		}
-		else if(word[i] >= '0' && word[i] <= '9')
-		{
-			if(code == 1){
-				code = 20;
-				break;
-			}
-			code = 2;
-			fprintf(output, "%c", word[i]);
-		}
-		else 
-		{
-			if(code == 1 || code == 2){
-				if(word[i] == '\n'){
-					continue;
-				}
-				if(mystrcmp(word, "Var")){
-					code = 3;
-				}
-				if(mystrcmp(word, "Begin")){
-					code = 4;
-				}
-				if(mystrcmp(word, "End")){
-					code = 5;
-				}
-				fprintf(output, "\t\t%d\n", code);
-			}
-			switch (word[i])
-			{
-				case ':':
-					code = 38;
-					break;
-				case '=':
-					code = 30;
-					break;
-				case ';':
-					code = 10;
-				break;
-				case ',':
-					code = 11;
-				break;
-				case '+':
-					code = 31;
-				break;
-				case '-':
-					code = 32;
-				break;
-				case '*':
-					code = 33;
-				break;
-				case '/':
-					code = 34;
-				break;
-				case '(':
-					code = 35;
-				break;
-				case ')':
-					code = 36;
-				break;
-			}
-			if(word[i] != '\n'){
-				fprintf(output, "%c", word[i]);
-			}
-		}
-		if(code >= 30 && code < 40)
-		{
-			fprintf(output, "\t\t%d\n", code);
-		}
-	}
-	if(mystrcmp(word, "Var")){
-		code = 3;
-	}
-	if(mystrcmp(word, "Begin")){
-		code = 4;
-	}
-	if(mystrcmp(word, "End")){
-		code = 5;
-	}
-
-	if(!(code >= 30 && code < 40))
-	{
-		fprintf(output, "\t\t%d\n", code);
-	}
-	fclose(output);
-	return code;
+	return flag;
 }
 
 int main(int argc, char ** argv)
 {
 	if(argc < 2)
 		goto END;
+
 	FILE *fp = fopen(argv[1], "r");
-	char * str = NULL;
 	unsigned long line = 0;
 
 	FILE * output = fopen("output.out", "w");
-	fclose(output);
 
-	do
+	char c = 0;
+	char prev_flag = 0;
+
+	do 
 	{
-		readln(&str, fp);
-		if(!strlen(str))
-			break;
+		prev_flag = get_flag(c);
+		c = fgetc(fp);
+		if (prev_flag != get_flag(c) || prev_flag == 1 || prev_flag == 2 || prev_flag == 6 || prev_flag == 7) 
+		{
+			if (prev_flag){
+				fprintf(output, "\t%d\t%ld", prev_flag, line);
+				fprintf(output, "\n");
+			}
+		}
+		if (c != '\n' && c != ' ' && c != EOF)
+		{
+			fprintf(output, "%c", c);
+		}
+		else if (c == '\n')
+		{
+			line++;
+		}
 
-		line++;
+			
+	} while (c != EOF);
 
-		FILE * output = fopen("output.out", "a");
-		fprintf(output, "\n::%lu\n", line);
-		fclose(output);
-
-		strip(str);
-	} while (strlen(str) != 0);
-
+	fclose(output);
 	fclose(fp);
 END:
 	return 0;

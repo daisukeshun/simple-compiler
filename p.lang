@@ -1,5 +1,12 @@
 Var a, b, c;
+s,
+d;
 Begin
-a := -(1 * (2 + 3 + 12)) - 10;
+GO TO something;
+a := -10 * 20 - (-(1 + 2 * 3 - 5) * (3 + 4));
 b := 200;
+c := a;
+something;
+a := 2 + 2 * 2 - 3;
+GO TO mark;
 End
