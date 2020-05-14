@@ -121,7 +121,7 @@ for line in list_of_lexems:
         clear_flags(flag)
         flag["variable"] = 1
 
-    elif line[0] == ",":
+    elif line[1] == "20":
         if flag["section"]:
             error = True
             print("Line {}: error {} not expecter".format(line[2], line[0]))
@@ -131,7 +131,7 @@ for line in list_of_lexems:
         clear_flags(flag)
         flag["colon"] = 1
 
-    elif line[0] == ";":
+    elif line[1] == "6":
         if flag["section"] == 0:
             if not flag["variable"]:
                 error = True
@@ -172,7 +172,7 @@ for line in list_of_lexems:
         clear_flags(flag)
         flag["double_dot"] = 1
 
-    elif line[0] == "=":
+    elif line[1] == "7":
         if not flag["double_dot"]:
             error = True
             print("Line {}: error {} not expecter".format(line[2], line[0]))
@@ -180,7 +180,7 @@ for line in list_of_lexems:
         flag["declarator"] = 1
         definition = 1
 
-    elif line[1] == "2":
+    elif line[1] == "23" or line[1] == "21":
         if flag["section"] != 1:
             error = True
             print("Line {}: error {} not expecter".format(line[2], line[0]))
@@ -207,7 +207,7 @@ for line in list_of_lexems:
             else:
                 flag["operator"] = 1
 
-    elif line[0] == "(":
+    elif line[1] == "10":
         if flag["section"] != 1:
             error = True
             print("Line {}: error {} not expecter".format(line[2], line[0]))
@@ -222,7 +222,7 @@ for line in list_of_lexems:
         flag["o_bracket"] = 1
         bracket_counter += 1
 
-    elif line[0] == ")":
+    elif line[1] == "11":
         if flag["section"] != 1:
             error = True
             print("Line {}: error {} not expecter".format(line[2], line[0]))

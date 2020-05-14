@@ -61,6 +61,7 @@ jmp	dadada
 	push	rax
 	pop	rax
 	mov	[c],	eax
+something:
 	push	3
 	push	2
 	push	2
@@ -79,7 +80,6 @@ jmp	dadada
 	push	rax
 	pop	rax
 	mov	[a],	eax
-something:
 dadada:
 	call	exit
 section '.exit' executable

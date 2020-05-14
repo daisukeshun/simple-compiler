@@ -18,7 +18,6 @@ def in_marks(mark, arr):
 def check_marks(marks):
     jmps = list(filter(lambda token: token[2][1] == 'jmp', marks))
     mark = list(filter(lambda token: token[2][1] == 'mark', marks))
- 
 
     last = []
     for jmp in jmps:
@@ -79,16 +78,16 @@ def main():
             token = expr.pop(0)
             if token[1] == '8' or token[1] == '3':
                 num.append(token)
-            elif token[0] != ':':
+            elif token[1] != '5':
                 if not op:
                     op.append(token)
                 else:
-                    if token[1] == '2':
-                        if op[-1][1] == '2':
+                    if token[1] == '21' or token[1] == '23':
+                        if op[-1][1] == '21' or op[-1][1] == '23':
                             if order[token[0]] > order[op[-1][0]]:
                                 op.append(token)
                             else:
-                                while order[token[0]] <= order[op[-1][0]] and op[-1][1] == '2':
+                                while order[token[0]] <= order[op[-1][0]] and (op[-1][1] == '21' or op[-1][1] == '23'):
                                     tmp = [op.pop(), num.pop(-2), num.pop()]
                                     num.append(tmp)
                                 op.append(token)
@@ -101,15 +100,14 @@ def main():
                         else:
                             op.append(token)
                             
-                    elif token[1] == '1':
-                        if token[0] == '(':
-                            op.append(token)
-                        else:
-                            while op[-1][0] != '(':
-                                tmp = [op.pop(), num.pop(-2), num.pop()]
-                                num.append(tmp)
-                            if op[-1][0] == '(':
-                                op.pop()
+                    elif token[1] == '10':
+                        op.append(token)
+                    elif token[1] == '11':
+                        while op[-1][0] != '(':
+                            tmp = [op.pop(), num.pop(-2), num.pop()]
+                            num.append(tmp)
+                        if op[-1][0] == '(':
+                            op.pop()
                     elif token[1] == 'Minus':
                         op.append(token)
         if not expr:
@@ -120,12 +118,10 @@ def main():
 
     index = 0
     while marks:
-        index = index + marks[0][1]
-        complete.insert(index, marks.pop(0)[2])
+        complete.insert(marks[0][1] + index, marks.pop(0)[2])
         index += 1
 
     complete.insert(0, variables)
-
 
     f = open("main.asm", "w")
     f.write("format ELF64\n")
@@ -159,7 +155,7 @@ def main():
                             f.write("\tpush\trax\n")
                         else:
                             f.write("\tpush\t{}\n".format(token[0]))
-                elif token[1] == '2':
+                elif token[1] == '21' or token[1] == '23':
                     f.write("\tpop\trax\n")
                     f.write("\tpop\trbx\n")
                     if token[0] == "+":     f.write("\tadd\trax,\trbx\n")
@@ -171,7 +167,7 @@ def main():
                     f.write("\tpop\trax\n")
                     f.write("\tneg\trax\n")
                     f.write("\tpush\trax\n")
-                elif token[0] == '=':
+                elif token[1] == '7':
                     f.write("\tpop\trax\n")
                     f.write("\tmov\t[{}],\teax\n".format(tmp[-2][0]))
 
