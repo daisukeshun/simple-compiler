@@ -1,13 +1,4 @@
-Var a, b, c;
-s,
-d;
+Var a, b;
 Begin
-GO TO something;
-a := -10 * 20 - (-(1 + 2 * 3 - 5) * (3 + 4));
-GO TO dadada;
-b := 200;
-c := a;
-something:
-a := 2 + 2 * 2 - 3;
-dadada;
+a:= 2 + 2 * 2 - 3 / (-10) * 11;
 End

@@ -78,7 +78,7 @@ for line in list_of_lexems:
             if not (flag["semicolon"] +
                     flag["begin"]):
                 error = True
-                print("Line {}: error {} not expecter".format(line[2], line[0]))
+                print("Line {}: error {} not expected".format(line[2], line[0]))
         clear_flags(flag)
         go = 1
 
@@ -86,7 +86,7 @@ for line in list_of_lexems:
         line[1] = "Keyword"
         if flag["section"] != 1:
             error = True
-            print("Line {}: error {} not expecter".format(line[2], line[0]))
+            print("Line {}: error {} not expected".format(line[2], line[0]))
         else:
             if go:
                 clear_flags(flag)
@@ -99,7 +99,7 @@ for line in list_of_lexems:
         if flag["section"] == 0:
             if not (flag["var"] + flag["semicolon"] + flag["colon"]):
                 error = True
-                print("Line {}: error {} not expecter".format(line[2], line[0]))
+                print("Line {}: error {} not expected".format(line[2], line[0]))
 
         elif flag["section"] == 1:
             if definition:
@@ -108,14 +108,14 @@ for line in list_of_lexems:
                         flag["operator"] + 
                         flag["minus"]):
                     error = True
-                    print("Line {}: error {} not expecter".format(line[2], line[0]))
+                    print("Line {}: error {} not expected".format(line[2], line[0]))
             elif not definition:
                 if not (flag["begin"] + 
                         flag["semicolon"] + 
                         flag["double_dot"] + 
                         flag["goto"]):
                     error = True
-                    print("Line {}: error {} not expecter".format(line[2], line[0]))
+                    print("Line {}: error {} not expected".format(line[2], line[0]))
         if flag["goto"]:
             line[1] = "jmp"
         clear_flags(flag)
@@ -124,10 +124,10 @@ for line in list_of_lexems:
     elif line[1] == "20":
         if flag["section"]:
             error = True
-            print("Line {}: error {} not expecter".format(line[2], line[0]))
+            print("Line {}: error {} not expected".format(line[2], line[0]))
             if not flag["variable"]:
                 error = True
-                print("Line {}: error {} not expecter".format(line[2], line[0]))
+                print("Line {}: error {} not expected".format(line[2], line[0]))
         clear_flags(flag)
         flag["colon"] = 1
 
@@ -135,14 +135,14 @@ for line in list_of_lexems:
         if flag["section"] == 0:
             if not flag["variable"]:
                 error = True
-                print("Line {}: error {} not expecter".format(line[2], line[0]))
+                print("Line {}: error {} not expected".format(line[2], line[0]))
         elif flag["section"] == 1:
             if not (flag["variable"] + 
                     flag["const"] +
                     flag["double_dot"] +
                     flag["c_bracket"]):
                 error = True
-                print("Line {}: error {} not expecter".format(line[2], line[0]))
+                print("Line {}: error {} not expected".format(line[2], line[0]))
         clear_flags(flag)
         flag["semicolon"] = 1
         definition = 0
@@ -150,32 +150,32 @@ for line in list_of_lexems:
     elif line[1] == "3":
         if flag["section"] != 1:
             error = True
-            print("Line {}: error {} not expecter".format(line[2], line[0]))
+            print("Line {}: error {} not expected".format(line[2], line[0]))
         elif flag["section"] == 1:
             if not (flag["operator"] +
                     flag["declarator"] +
                     flag["minus"] +
                     flag["o_bracket"]):
                 error = True
-                print("Line {}: error {} not expecter".format(line[2], line[0]))
+                print("Line {}: error {} not expected".format(line[2], line[0]))
         clear_flags(flag)
         flag["const"] = 1
 
     elif line[1] == "5":
         if flag["section"] != 1:
             error = True
-            print("Line {}: error {} not expecter".format(line[2], line[0]))
+            print("Line {}: error {} not expected".format(line[2], line[0]))
         else:
             if not flag["variable"]:
                 error = True
-                print("Line {}: error {} not expecter".format(line[2], line[0]))
+                print("Line {}: error {} not expected".format(line[2], line[0]))
         clear_flags(flag)
         flag["double_dot"] = 1
 
     elif line[1] == "7":
         if not flag["double_dot"]:
             error = True
-            print("Line {}: error {} not expecter".format(line[2], line[0]))
+            print("Line {}: error {} not expected".format(line[2], line[0]))
         clear_flags(flag)
         flag["declarator"] = 1
         definition = 1
@@ -183,7 +183,7 @@ for line in list_of_lexems:
     elif line[1] == "23" or line[1] == "21":
         if flag["section"] != 1:
             error = True
-            print("Line {}: error {} not expecter".format(line[2], line[0]))
+            print("Line {}: error {} not expected".format(line[2], line[0]))
         else:
             unary = False
             if line[0] == "-":
@@ -198,7 +198,7 @@ for line in list_of_lexems:
                         flag["const"] +
                         flag["variable"]):
                     error = True
-                    print("Line {}: error {} not expecter".format(line[2], line[0]))
+                    print("Line {}: error {} not expected".format(line[2], line[0]))
 
             clear_flags(flag)
             if unary:
@@ -210,14 +210,14 @@ for line in list_of_lexems:
     elif line[1] == "10":
         if flag["section"] != 1:
             error = True
-            print("Line {}: error {} not expecter".format(line[2], line[0]))
+            print("Line {}: error {} not expected".format(line[2], line[0]))
         else:
             if not (flag["operator"] +
                     flag["declarator"] +
                     flag["minus"] +
                     flag["o_bracket"]):
                 error = True
-                print("Line {}: error {} not expecter".format(line[2], line[0]))
+                print("Line {}: error {} not expected".format(line[2], line[0]))
         clear_flags(flag)
         flag["o_bracket"] = 1
         bracket_counter += 1
@@ -225,18 +225,18 @@ for line in list_of_lexems:
     elif line[1] == "11":
         if flag["section"] != 1:
             error = True
-            print("Line {}: error {} not expecter".format(line[2], line[0]))
+            print("Line {}: error {} not expected".format(line[2], line[0]))
         else:
             if not (flag["variable"] +
                     flag["const"] +
                     flag["c_bracket"]):
                 error = True
-                print("Line {}: error {} not expecter".format(line[2], line[0]))
+                print("Line {}: error {} not expected".format(line[2], line[0]))
         clear_flags(flag)
         flag["c_bracket"] = 1
         last_bracket = line
         bracket_counter -= 1
 
 if bracket_counter:
-    print("Line {}: error {} not expecter".format(last_bracket[2], last_bracket[0]))
+    print("Line {}: error {} not expected".format(last_bracket[2], last_bracket[0]))
     error = True

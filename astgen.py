@@ -50,6 +50,9 @@ def main():
         if in_var and token[1] == '8':
             variables.append(token)
         if token[1] == '8' and not in_array(token, variables):
+            if raw_lines[i + 2][1] == '7':
+                print("Line {}: error variable {} wasn't declared".format(token[2], token[0]))
+                return 0
             token[1] = 'mark'
             marks.append([i, len(definitions), token])
         if token[1] == 'jmp':
@@ -61,6 +64,7 @@ def main():
             in_def = 0
         if in_def:
             definitions[-1].append(token)
+
 
     if not check_marks(marks):
         return 0
