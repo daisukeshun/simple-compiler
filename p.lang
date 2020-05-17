@@ -1,4 +1,4 @@
-Var a, b;
+Var a, b, c, d;
 Begin
 a:= 2 + 2 * 2 - 3 / (-10) * 11;
 End

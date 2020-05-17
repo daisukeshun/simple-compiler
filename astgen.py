@@ -80,6 +80,9 @@ def main():
         op.clear()
         while expr:
             token = expr.pop(0)
+            print(op)
+            print(num)
+            print('\n')
             if token[1] == '8' or token[1] == '3':
                 num.append(token)
             elif token[1] != '5':
@@ -108,7 +111,10 @@ def main():
                         op.append(token)
                     elif token[1] == '11':
                         while op[-1][0] != '(':
-                            tmp = [op.pop(), num.pop(-2), num.pop()]
+                            if op[-1][1] == 'Minus':
+                                tmp = [op.pop(), num.pop()]
+                            if op[-1][1] == '21' or op[-1][1] == '23':
+                                tmp = [op.pop(), num.pop(-2), num.pop()]
                             num.append(tmp)
                         if op[-1][0] == '(':
                             op.pop()
@@ -126,6 +132,8 @@ def main():
         index += 1
 
     complete.insert(0, variables)
+    for i in complete:
+        print(i)
 
     f = open("main.asm", "w")
     f.write("format ELF64\n")
