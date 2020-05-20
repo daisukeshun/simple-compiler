@@ -34,6 +34,7 @@ def check_marks(marks):
 def main():
     if error:
         return 0
+    err = False
     raw_lines = list_of_lexems
     variables = []
     marks = []
@@ -51,8 +52,8 @@ def main():
             variables.append(token)
         if token[1] == '8' and not in_array(token, variables):
             if raw_lines[i + 2][1] == '7':
+                err = True
                 print("Line {}: error variable {} wasn't declared".format(token[2], token[0]))
-                return 0
             token[1] = 'mark'
             marks.append([i, len(definitions), token])
         if token[1] == 'jmp':
@@ -64,6 +65,9 @@ def main():
             in_def = 0
         if in_def:
             definitions[-1].append(token)
+
+    if err:
+        return 0
 
 
     if not check_marks(marks):
