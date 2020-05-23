@@ -28,7 +28,6 @@ flag = {
 
         "o_bracket": 0,
         "c_bracket": 0,
-
         }
 
 def clear_flags(flag):
